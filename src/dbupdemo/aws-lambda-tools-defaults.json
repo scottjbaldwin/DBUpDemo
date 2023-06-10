@@ -9,6 +9,6 @@
   "region": "",
   "configuration": "Release",
   "s3-prefix": "dbupdemo/",
-  "template": "serverless.template",
+  "template": "serverless.yaml",
   "template-parameters": ""
 }
