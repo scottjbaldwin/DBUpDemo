@@ -1,0 +1,510 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Basic 2-tier VPC setup containing a DMZ and APP layer
+Parameters:
+  VPCCIDR:
+    Type: String
+    Description: CIDR Block for VPC (Append CIDR Notation /18 for example)
+  DMZASubnet:
+    Type: String
+    Description: DMZ AZ-A Subnet Range (Append CIDR Notation /18 for example)
+  DMZBSubnet:
+    Type: String
+    Description: DMZ AZ-B Subnet Range (Append CIDR Notation /18 for example)
+  DMZCSubnet:
+    Type: String
+    Description: DMZ AZ-C Subnet Range (Append CIDR Notation /18 for example)
+  APPASubnet:
+    Type: String
+    Description: Private AZ-A Subnet Range (Append CIDR Notation /18 for example)
+  APPBSubnet:
+    Type: String
+    Description: Private AZ-B Subnet Range (Append CIDR Notation /18 for example)
+  APPCSubnet:
+    Type: String
+    Description: Private AZ-C Subnet Range (Append CIDR Notation /18 for example)
+  Environment:
+    Type: String
+    Description: Which environment will this VPC be used for?
+    AllowedValues:
+      - dev
+      - test
+      - staging
+      - prod
+    Default: dev
+  VPCLogRetentionDays:
+    Type: Number
+    Description: The number of days to retain VPC Flow logs
+    Default: 30
+
+Resources:
+  VPCFlowLogRole:
+    Type: 'AWS::IAM::Role'
+    DeletionPolicy: 'Retain'
+    UpdateReplacePolicy: 'Retain'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: vpc-flow-logs.amazonaws.com
+            Action: 'sts:AssumeRole'
+  VPCFlowLogPolicy:
+    Type: 'AWS::IAM::Policy'
+    DeletionPolicy: 'Retain'
+    UpdateReplacePolicy: 'Retain'
+    Properties:
+      PolicyName: !Sub ${Environment}-VPCFlowLog-Policy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+            - 'logs:CreateLogGroup'
+            - 'logs:CreateLogStream'
+            - 'logs:DescribeLogGroups'
+            - 'logs:DescribeLogStreams'
+            - 'logs:PutLogEvents'
+            Resource: '*'
+      Roles:
+        - !Ref VPCFlowLogRole
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      CidrBlock: !Sub '${VPCCIDR}'
+      Tags:
+        - Key: CloudFormationStackID
+          Value: !Ref 'AWS::StackId'
+        - Key: StackName
+          Value: !Ref 'AWS::StackName'
+        - Key: Environment
+          Value: !Ref Environment
+  VPCFlowLog:
+    Type: 'AWS::EC2::FlowLog'
+    DeletionPolicy: 'Retain'
+    UpdateReplacePolicy: 'Retain'
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt VPCFlowLogRole.Arn
+      LogGroupName: !Sub ${Environment}-VPCFlowLog
+      ResourceId: !Ref VPC
+      ResourceType: VPC
+      TrafficType: ALL
+  VPCFlowLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    DeletionPolicy: 'Retain'
+    UpdateReplacePolicy: 'Retain'
+    Properties:
+      LogGroupName: !Sub '${Environment}-VPCFlowLog'
+      RetentionInDays: !Ref VPCLogRetentionDays
+  DMZTierASubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone:
+        !Select
+          - 0
+          - !GetAZs
+      CidrBlock: !Sub '${DMZASubnet}'
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DMZ-Tier-A
+        - Key: Network
+          Value: !Ref 'AWS::StackId'
+  DMZTierBSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone:
+        !Select
+          - 1
+          - !GetAZs
+      CidrBlock: !Sub '${DMZBSubnet}'
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DMZ-Tier-B
+        - Key: Network
+          Value: !Ref 'AWS::StackId'
+  DMZTierCSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone:
+        !Select
+          - 2
+          - !GetAZs
+      CidrBlock: !Sub '${DMZCSubnet}'
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DMZ-Tier-C
+        - Key: Network
+          Value: !Ref 'AWS::StackId'
+  AppTierASubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone:
+        !Select
+          - 0
+          - !GetAZs
+      CidrBlock: !Sub '${APPASubnet}'
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-App-Tier-A
+        - Key: Network
+          Value: !Ref 'AWS::StackId'
+  AppTierBSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone:
+        !Select
+          - 1
+          - !GetAZs
+      CidrBlock: !Sub '${APPBSubnet}'
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-App-Tier-B
+        - Key: Network
+          Value: !Ref 'AWS::StackId'
+  AppTierCSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone:
+        !Select
+          - 2
+          - !GetAZs
+      CidrBlock: !Sub '${APPCSubnet}'
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-App-Tier-C
+        - Key: Network
+          Value: !Ref 'AWS::StackId'
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-gateway
+        - Key: Network
+          Value: !Ref 'AWS::StackId'
+  AttachGateway:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  RouteTableIGW:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}${Environment}-IGW
+  RouteTableNatA:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-${Environment}-NatA
+  RouteTableNatB:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-${Environment}-NatB
+  RouteTableNatC:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-${Environment}-NatC
+  RouteIGW:
+    Type: 'AWS::EC2::Route'
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref RouteTableIGW
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  DMZTierARouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref DMZTierASubnet
+      RouteTableId: !Ref RouteTableIGW
+  DMZTierBRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref DMZTierBSubnet
+      RouteTableId: !Ref RouteTableIGW
+  DMZTierCRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref DMZTierCSubnet
+      RouteTableId: !Ref RouteTableIGW
+  AppTierARouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref AppTierASubnet
+      RouteTableId: !Ref RouteTableNatA
+  AppTierBRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref AppTierBSubnet
+      RouteTableId: !Ref RouteTableNatB
+  AppTierCRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref AppTierCSubnet
+      RouteTableId: !Ref RouteTableNatC
+  NetworkAcl:
+    Type: 'AWS::EC2::NetworkAcl'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-NetworkAcl
+  ACLEgress:
+    Type: 'AWS::EC2::NetworkAclEntry'
+    Properties:
+      RuleNumber: 100
+      Egress: 'True'
+      Protocol: '-1'
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref NetworkAcl
+  ACLIngress:
+    Type: 'AWS::EC2::NetworkAclEntry'
+    Properties:
+      RuleNumber: 100
+      Egress: 'False'
+      Protocol: '-1'
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref NetworkAcl
+  NATSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable internal access to the NAT device and Interfaces
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: '-1'
+          FromPort: '1'
+          ToPort: '65000'
+          CidrIp: !Sub '${VPCCIDR}'
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          FromPort: '1'
+          ToPort: '65000'
+          CidrIp: 0.0.0.0/0
+  DMZTierANetworkAclAssociation:
+    Type: 'AWS::EC2::SubnetNetworkAclAssociation'
+    Properties:
+      SubnetId: !Ref DMZTierASubnet
+      NetworkAclId: !Ref NetworkAcl
+  DMZTierBNetworkAclAssociation:
+    Type: 'AWS::EC2::SubnetNetworkAclAssociation'
+    Properties:
+      SubnetId: !Ref DMZTierBSubnet
+      NetworkAclId: !Ref NetworkAcl
+  DMZTierCNetworkAclAssociation:
+    Type: 'AWS::EC2::SubnetNetworkAclAssociation'
+    Properties:
+      SubnetId: !Ref DMZTierCSubnet
+      NetworkAclId: !Ref NetworkAcl
+  AppTierANetworkAclAssociation:
+    Type: 'AWS::EC2::SubnetNetworkAclAssociation'
+    Properties:
+      SubnetId: !Ref AppTierASubnet
+      NetworkAclId: !Ref NetworkAcl
+  AppTierBNetworkAclAssociation:
+    Type: 'AWS::EC2::SubnetNetworkAclAssociation'
+    Properties:
+      SubnetId: !Ref AppTierBSubnet
+      NetworkAclId: !Ref NetworkAcl
+  AppTierCNetworkAclAssociation:
+    Type: 'AWS::EC2::SubnetNetworkAclAssociation'
+    Properties:
+      SubnetId: !Ref AppTierCSubnet
+      NetworkAclId: !Ref NetworkAcl
+  VPNGateway:
+    Type: 'AWS::EC2::VPNGateway'
+    Properties:
+      Type: ipsec.1
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-vpg
+  S3Endpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource:
+              - '*'
+      RouteTableIds:
+        - !Ref RouteTableNatA
+        - !Ref RouteTableNatB
+        - !Ref RouteTableNatC
+      ServiceName: !Sub  'com.amazonaws.${AWS::Region}.s3'
+      VpcId: !Ref VPC
+  DynamoEndpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource:
+              - '*'
+      RouteTableIds:
+        - !Ref RouteTableNatA
+        - !Ref RouteTableNatB
+        - !Ref RouteTableNatC
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.dynamodb'
+      VpcId: !Ref VPC
+  SQSEndpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource:
+              - '*'
+      SecurityGroupIds:
+        - !Ref NATSecurityGroup
+      PrivateDnsEnabled: 'true'
+      SubnetIds:
+        - !Ref AppTierASubnet
+        - !Ref AppTierBSubnet
+        - !Ref AppTierCSubnet
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sqs'
+      VpcId: !Ref VPC
+      VpcEndpointType: Interface
+  SecManEndpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource:
+              - '*'
+      SecurityGroupIds:
+        - !Ref NATSecurityGroup
+      PrivateDnsEnabled: 'true'
+      SubnetIds:
+        - !Ref AppTierASubnet
+        - !Ref AppTierBSubnet
+        - !Ref AppTierCSubnet
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.secretsmanager'
+      VpcId: !Ref VPC
+      VpcEndpointType: Interface
+  SSMEndpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource:
+              - '*'
+      SecurityGroupIds:
+        - !Ref NATSecurityGroup
+      PrivateDnsEnabled: 'true'
+      SubnetIds:
+        - !Ref AppTierASubnet
+        - !Ref AppTierBSubnet
+        - !Ref AppTierCSubnet
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
+      VpcId: !Ref VPC
+      VpcEndpointType: Interface
+Outputs:
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: !Sub '${Environment}-VPCStack-VPCID'
+  CidrBlock:
+    Description: CidrBlock
+    Value: !GetAtt
+      - VPC
+      - CidrBlock
+    Export:
+      Name: !Sub '${Environment}-VPCStack-CidrBlock'
+  DMZTierASubnet:
+    Description: DMZTierASubnet
+    Value: !Ref DMZTierASubnet
+    Export:
+      Name: !Sub '${Environment}-VPCStack-DMZTierASubnet'
+  DMZTierBSubnet:
+    Description: DMZTierBSubnet
+    Value: !Ref DMZTierBSubnet
+    Export:
+      Name: !Sub '${Environment}-VPCStack-DMZTierBSubnet'
+  DMZTierCSubnet:
+    Description: DMZTierCSubnet
+    Value: !Ref DMZTierCSubnet
+    Export:
+      Name: !Sub '${Environment}-VPCStack-DMZTierCSubnet'
+  AppTierASubnet:
+    Description: AppTierASubnet
+    Value: !Ref AppTierASubnet
+    Export:
+      Name: !Sub '${Environment}-VPCStack-AppTierASubnet'
+  AppTierBSubnet:
+    Description: AppTierBSubnet
+    Value: !Ref AppTierBSubnet
+    Export:
+      Name: !Sub '${Environment}-VPCStack-AppTierBSubnet'
+  AppTierCSubnet:
+    Description: AppTierCSubnet
+    Value: !Ref AppTierCSubnet
+    Export:
+      Name: !Sub '${Environment}-VPCStack-AppTierCSubnet'
+  EndPointSecurityGroup:
+    Description: NATSecurityGroup
+    Value: !Ref NATSecurityGroup
+    Export:
+      Name: !Sub '${Environment}-VPCStack-EndPointSG'
+  AppTierAAZ:
+    Description: The Availability Zone that AppTier A resides in
+    Value:
+        !Select
+          - 0
+          - !GetAZs
+    Export:
+      Name: !Sub '${Environment}-AppTierA-AZ'
+  AppTierBAZ:
+    Description: The Availability Zone that AppTier B resides in
+    Value:
+        !Select
+          - 1
+          - !GetAZs
+    Export:
+      Name: !Sub '${Environment}-AppTierB-AZ'
+  AppTierCAZ:
+    Description: The Availability Zone that AppTier C resides in
+    Value:
+        !Select
+          - 2
+          - !GetAZs
+    Export:
+      Name: !Sub '${Environment}-AppTierC-AZ'
