@@ -1,6 +1,13 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Description: An AWS Serverless Application.
+Parameters:
+  DBEndpoint:
+    Type: String
+    Description: The endpoint of the database to upgrade
+  DBSecretArn: 
+    Type: String
+    Description: The Arn of the secret to use to connect to the database for upgrade purposes.
 Resources:
   Get:
     Type: AWS::Serverless::Function
@@ -21,6 +28,19 @@ Resources:
           Properties:
             Path: /
             Method: GET
+
+  DbUpFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dbupdemo::dbupdemo.Functions::SchemaUpgrade
+      Runtime: dotnet6
+      CodeUri: ""
+      MemorySize: 1024
+      Timeout: 900
+      Environment:
+        DBEndpoint: !Ref DBEndpoint
+        DBName: dbupdemo
+        DBSecret: !Ref DBSecretArn
 Outputs:
   ApiURL:
     Description: API endpoint URL for Prod environment

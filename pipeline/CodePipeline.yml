@@ -1,0 +1,467 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CovidSafe Example application pipeline
+Parameters:
+  ProjectName:
+    Type: String
+    Default: dbupdemo
+    Description: Name for the Project
+  CodeBuildEnvironment:
+    Type: String
+    Default: "aws/codebuild/standard:7.0"
+    Description: Name of the image to use for the CodeBuild container
+  DevAccountNo:
+    Type: String
+    Description: The Account Number of the dev account
+  ProdAccountNo:
+    Type: String
+    Description: The Account Number of the prod account
+  SourceRepository:
+    Type: String
+    Default: scottjbaldwin/DBUpDemo
+    Description: The github source code repository host the code base
+
+Resources:
+  DBUpDemoArtefactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+              KMSMasterKeyID: 
+                Fn::ImportValue: 
+                  !Sub '${ProjectName}:ArtefactKMSKey'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+        - Id: Purge after 7 days of creation
+          ExpirationInDays: 7
+          Status: Enabled
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+
+  DBUpDemoArtefactBucketPolicy: 
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref DBUpDemoArtefactBucket
+      PolicyDocument: 
+        Statement: 
+          - Sid: ServicePermit
+            Effect: Allow
+            Principal:
+              Service: 
+                - codebuild.amazonaws.com
+                - codepipeline.amazonaws.com
+            Action: 's3:*'
+            Resource: !GetAtt DBUpDemoArtefactBucket.Arn
+          - Sid: AllowTargetAccountsAccessObjects
+            Effect: Allow
+            Principal:
+              AWS: 
+                - !Sub 'arn:${AWS::Partition}:iam::${DevAccountNo}:root'
+                - !Sub 'arn:${AWS::Partition}:iam::${ProdAccountNo}:root'
+            Action: 's3:*'
+            Resource: !Sub '${DBUpDemoArtefactBucket.Arn}/*'
+          - Sid: AllowTargetAccountsAccess
+            Effect: Allow
+            Principal:
+              AWS: 
+                - !Sub 'arn:${AWS::Partition}:iam::${DevAccountNo}:root'
+                - !Sub 'arn:${AWS::Partition}:iam::${ProdAccountNo}:root'
+            Action: 's3:*'
+            Resource: !Sub '${DBUpDemoArtefactBucket.Arn}/*'
+
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action: 
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+      Path: /
+      Policies:
+        - PolicyName: CodeBuildAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}_buildlogs'
+                  - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}_buildlogs:*'
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+              - Effect: Allow
+                Resource: !Sub '${DBUpDemoArtefactBucket.Arn}/*'
+                Action: 
+                  - s3:*
+              - Effect: Allow
+                Resource: !GetAtt DBUpDemoArtefactBucket.Arn
+                Action: 
+                  - s3:*
+              - Effect: Allow
+                Action:
+                  - 'codebuild:*'
+                  - 'codepipeline:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - kms:Encrypt
+                  - kms:Decrypt
+                  - kms:ReEncrypt*
+                  - kms:DescribeKey*
+                  - kms:GenerateDataKey
+                Resource: 
+                  Fn::ImportValue: 
+                    !Sub '${ProjectName}:ArtefactKMSKey'
+              - Effect: Allow
+                Action:
+                  - 'kms:ListKeys'
+                  - 'kms:ListAliases'
+                Resource: '*'
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+    
+  # CodeBuild
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub '${ProjectName}_build'
+      Description: Builds the backend services and creates a cloudformation template to deploy them
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment: 
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: !Sub '${CodeBuildEnvironment}'
+        EnvironmentVariables:
+          - Name: BUILD_OUTPUT_BUCKET
+            Value: !Ref DBUpDemoArtefactBucket
+          - Name: AWS_REGION
+            Value: !Sub ${AWS::Region}
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      LogsConfig:
+        CloudWatchLogs:
+          GroupName: !Ref CodeBuildProjectLogs
+          Status: ENABLED
+          StreamName: MainBuild
+      Source: 
+        Type: CODEPIPELINE
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+
+  CodeBuildProjectLogs:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub '/aws/codebuild/${ProjectName}_buildlogs'
+      RetentionInDays: 30
+
+  # CodePipeline definition and required roles
+  CFNPipelinePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: CloudFormation Pipeline Execution Policy
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 
+                - 'cloudformation:CreateStack'
+                - 'cloudformation:DescribeStacks'
+                - 'cloudformation:DeleteStack'
+                - 'cloudformation:UpdateStack'
+                - 'cloudformation:CreateChangeSet'
+                - 'cloudformation:ExecuteChangeSet'
+                - 'cloudformation:DeleteChangeSet'
+                - 'cloudformation:DescribeChangeSet'
+                - 'cloudformation:SetStackPolicy'
+                - 'cloudformation:SetStackPolicy'
+                - 'cloudformation:ValidateTemplate'
+                - 'codebuild:StartBuild'
+                - 'codebuild:BatchGetBuilds'
+            Resource: "*"
+          - Effect: Allow
+            Resource: 
+              - !Sub '${DBUpDemoArtefactBucket.Arn}/*'
+              - !GetAtt DBUpDemoArtefactBucket.Arn
+            Action: 
+              - 's3:*'
+
+  GitHubConnection:
+    Type: AWS::CodeStarConnections::Connection
+    Properties:
+      ConnectionName: GitHubConnection
+      ProviderType: GitHub
+
+  PipelineExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action: 
+            - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: 
+                - codepipeline.amazonaws.com
+      Path: /
+      ManagedPolicyArns:
+        - !Ref CFNPipelinePolicy
+      Policies:
+        - PolicyName: CodePipelineAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - 'iam:PassRole'
+                Effect: Allow
+                Resource: '*'
+              - Effect: Allow
+                Action: 'sts:AssumeRole'
+                Resource: 
+                  - !Sub arn:${AWS::Partition}:iam::${DevAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                  - !Sub arn:${AWS::Partition}:iam::${ProdAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+              - Effect: Allow
+                Action:
+                  - kms:Encrypt
+                  - kms:Decrypt
+                  - kms:ReEncrypt*
+                  - kms:DescribeKey*
+                  - kms:GenerateDataKey
+                Resource:
+                  Fn::ImportValue: 
+                    !Sub '${ProjectName}:ArtefactKMSKey'
+              - Effect: Allow
+                Action:
+                  - 'kms:ListKeys'
+                  - 'kms:ListAliases'
+                Resource: '*'
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref ProdApprovalGateTopic
+              - Effect: Allow
+                Action: codestar-connections:UseConnection
+                Resource: !Ref GitHubConnection
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Approval Gate for Production
+  ProductionApproversGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: !Sub ${ProjectName}-Prod-DeploymentApprovers
+      Path: /
+      Policies:
+        - PolicyName: ApproverPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - codepipeline:ListPipelines
+                Resource: '*'
+                Effect: Allow
+              - Action:
+                - codepipeline:GetPipeline
+                - codepipeline:GetPipelineState
+                - codepipeline:GetPipelineExecution
+                Effect: Allow
+                Resource:
+                  - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${ProjectName}
+              - Action:
+                - codepipeline:PutApprovalResult
+                Effect: Allow
+                Resource: !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${ProjectName}/Prod/DeploymentApproval
+
+  ProdApprovalGateTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Sub ${ProjectName} Production Deployment Approval Topic
+      TopicName: !Sub ${ProjectName}-Production-Deployment
+
+  Pipeline:
+      Type: AWS::CodePipeline::Pipeline
+      Properties:
+        Tags:
+          - Key: Project
+            Value: !Ref ProjectName
+        ArtifactStore: 
+            Location: !Ref DBUpDemoArtefactBucket
+            Type: S3
+            EncryptionKey:
+              Id: 
+                Fn::ImportValue:
+                  !Sub '${ProjectName}:ArtefactKMSKey'
+              Type: KMS
+        Name: !Sub ${ProjectName}_pipeline01
+        RoleArn: !GetAtt PipelineExecutionRole.Arn
+        Stages:
+            - Name: Source
+              Actions:
+                - Name: Source
+                  InputArtifacts: []
+                  ActionTypeId:
+                    Owner: AWS
+                    Category: Source
+                    Provider: CodeStartSourceConnection
+                    Version: '1'
+                  Configuration:
+                    ConnectionArn: !Ref GitHubConnection
+                    FullRepositoryId: !Ref SourceRepository
+                    BranchName: main
+                    OutputArtifactFormat: CODE_ZIP
+                  OutputArtifacts:
+                    - Name: SourceArtefact
+                  RunOrder: 1
+            - Name: Build
+              Actions:
+                - Name: CodeBuild
+                  ActionTypeId:
+                    Category: Build
+                    Owner: AWS
+                    Provider: CodeBuild
+                    Version: '1'
+                  Configuration:
+                    ProjectName: !Ref CodeBuildProject
+                  InputArtifacts:
+                    - Name: SourceArtefact
+                  OutputArtifacts:
+                    - Name: OutputArtefact
+                  RunOrder: 1
+            - Name: DeployToDev
+              Actions:
+                - Name: DeployToDev
+                  Namespace: DevDeploy
+                  RoleArn: !Sub arn:${AWS::Partition}:iam::${DevAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                  ActionTypeId:
+                    Category: Deploy
+                    Owner: AWS
+                    Provider: CloudFormation
+                    Version: '1'
+                  Configuration:
+                    ActionMode: CREATE_UPDATE
+                    RoleArn: !Sub arn:${AWS::Partition}:iam::${DevAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                    StackName: !Sub '${ProjectName}-Dev-Stack'
+                    TemplatePath: OutputArtefact::CovidAPIStack.yml
+                    Capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                    ParameterOverrides: |
+                      {
+                          "Environment" : "Dev"
+                      }
+                  InputArtifacts:
+                    - Name: OutputArtefact
+                  OutputArtifacts:
+                    - Name: !Sub '${ProjectName}DevDeployment'
+                  RunOrder: 1
+            - Name: DeployToProd
+              Actions:
+                - Name: CreateProdChangeSet
+                  RoleArn: !Sub arn:${AWS::Partition}:iam::${ProdAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                  ActionTypeId:
+                    Category: Deploy
+                    Owner: AWS
+                    Provider: CloudFormation
+                    Version: '1'
+                  Configuration:
+                    ActionMode: CHANGE_SET_REPLACE
+                    RoleArn: !Sub arn:${AWS::Partition}:iam::${ProdAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                    StackName: !Sub '${ProjectName}-Prod-Stack'
+                    ChangeSetName: !Sub '${ProjectName}-Prod-ChangeSet'
+                    TemplatePath: OutputArtefact::CovidAPIStack.yml
+                    Capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM
+                    ParameterOverrides: |
+                      {
+                          "Environment" : "Prod"
+                      }
+                  InputArtifacts:
+                    - Name: OutputArtefact
+                  RunOrder: 1
+                - Name: DeploymentApproval
+                  ActionTypeId:
+                    Category: Approval
+                    Owner: AWS
+                    Provider: Manual
+                    Version: '1'
+                  Configuration:
+                    NotificationArn: !Ref ProdApprovalGateTopic
+                  RunOrder: 2
+                - Name: ExecuteProdChangeSet
+                  Namespace: ProdDeploy
+                  RoleArn: !Sub arn:${AWS::Partition}:iam::${ProdAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                  ActionTypeId:
+                    Category: Deploy
+                    Owner: AWS
+                    Provider: CloudFormation
+                    Version: '1'
+                  Configuration:
+                    ActionMode: CHANGE_SET_EXECUTE
+                    RoleArn: !Sub arn:${AWS::Partition}:iam::${ProdAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                    StackName: !Sub '${ProjectName}-Prod-Stack'
+                    ChangeSetName: !Sub '${ProjectName}-Prod-ChangeSet'
+                  OutputArtifacts:
+                    - Name: !Sub '${ProjectName}ProdChangeSet'
+                  RunOrder: 3
+
+  PipelineSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Sub "${ProjectName}-Pipeline-Notification-Topic"
+  
+  PipelineSNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action:
+            - sns:Publish
+            Resource:
+            - !Ref PipelineSNSTopic
+      Topics:
+        - !Ref PipelineSNSTopic
+        
+
+  PipelineNotificationEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: !Sub "A rule to capture pipeline events from the ${ProjectName} pipeline"
+      EventPattern:
+        source: 
+          - aws.codepipeline
+        detail-type: 
+          - CodePipeline Pipeline Execution State Change
+        detail:
+          state: 
+            - FAILED
+          pipeline:
+            - !Ref Pipeline
+      State: ENABLED
+      Targets: 
+        - Id: SNSTarget
+          Arn: !Ref PipelineSNSTopic
+          InputTransformer:
+            InputPathsMap:
+              "pipeline" : "$.detail.pipeline"
+              "executionId" : "$.detail.execution-id"
+              "region": "$.region"
+            InputTemplate: "{\"SNSTopic\": \"Pipeline <pipeline>, execution id <executionId> has failed! URL: https://ap-southeast-2.console.aws.amazon.com/codesuite/codepipeline/pipelines/<pipeline>/view?region=<region>\"}"
+
