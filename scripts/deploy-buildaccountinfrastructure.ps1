@@ -18,10 +18,18 @@ The name of the project the infrastructure is for
 The AWS profile to use to execute the aws cli command. This defaults to the current 
 AWS_PROFILE environment variable
 
+.PARAMETER DevAccountNo
+
+The AWS Account Number for the Dev account
+
+.PARAMETER ProdAccountNo
+
+The AWS Account Number for the Prod account
+
 .PARAMETER CloudFormationBucket
 
 The bucket to upload the cloudformation to during deployment. Defaults
-to <accountno>-cloudformationbased on the account of the AWS profile 
+to <accountno>-cloudformation based on the account of the AWS profile 
 being used to execute the script.
 
 .PARAMETER KMSKeyAdministratorArn
