@@ -85,7 +85,7 @@ Resources:
       TargetKeyId: !Ref ArtefactKMSKey
 
 Outputs:
-  AretfactKMSKey:
+  ArtefactKMSKey:
     Description: The ARN of the KMS Key to be used for artefacts'
     Value: !GetAtt  ArtefactKMSKey.Arn
     Export: 

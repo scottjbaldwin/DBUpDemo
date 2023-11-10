@@ -1,0 +1,52 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      dotnet: 6.0
+    commands:
+      
+      #Install Amazon Lambda Tools  
+      - dotnet tool install Amazon.Lambda.Tools -g
+      - export PATH="$PATH:/root/.dotnet/tools"
+
+  pre_build:
+    commands:
+      # log the environment variables we care about
+      - printenv
+
+      # Upgrade apt
+      - apt-get upgrade
+      # Update libs
+      - apt-get update
+
+  build:
+    commands:
+
+      #build the code
+      - dotnet build ./src/dbupdemo/dbupdemo.csproj
+
+      # run unit tests
+      - dotnet test ./test/CovidAPI.Tests/dbupdemo.Tests.csproj --verbosity normal --logger "trx;LogFileName=salad.Api.trx" --results-directory './testresults'
+
+  post_build:
+    commands:
+# Prepare for the package command
+      - SHORT_VERSION=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - echo $SHORT_VERSION
+      - MSBUILD_PARAMETERS=\"/p:VersionSuffix=$SHORT_VERSION\"
+      - echo $MSBUILD_PARAMETERS
+
+      # Generate a CI package for the lambda
+      - dotnet lambda package-ci >
+        --configuration Release
+        --project-location ./src/dbupdemo
+        --template serverless.yml
+        --s3-bucket $BUILD_OUTPUT_BUCKET
+        --s3-prefix dbupdemo/$CODEBUILD_BUILD_ID
+        --output-template dbupdemostack.yml
+        --msbuild-parameters $MSBUILD_PARAMETERS
+
+artifacts:
+  files:
+    - dbupdemostack.yml
+  discard-paths: no
