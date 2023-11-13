@@ -8,8 +8,9 @@ Parameters:
   DBSecretArn: 
     Type: String
     Description: The Arn of the secret to use to connect to the database for upgrade purposes.
+  
 Resources:
-  Get:
+  GetFunction:
     Type: AWS::Serverless::Function
     Properties:
       Architectures:
@@ -29,6 +30,14 @@ Resources:
             Path: /
             Method: GET
 
+  GetFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${GetFunction}"
+      RetentionInDays: 30
+
   DbUpFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -38,9 +47,19 @@ Resources:
       MemorySize: 1024
       Timeout: 900
       Environment:
-        DBEndpoint: !Ref DBEndpoint
-        DBName: dbupdemo
-        DBSecret: !Ref DBSecretArn
+        Variables:
+            DBEndpoint: !Ref DBEndpoint
+            DBName: dbupdemo
+            DBSecret: !Ref DBSecretArn
+
+  DbUpFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${DbUpFunction}"
+      RetentionInDays: 30
+
 Outputs:
   ApiURL:
     Description: API endpoint URL for Prod environment

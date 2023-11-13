@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: dbup demo application database
+Parameters:
+  VPCId:
+    Type: String
+    Description: The VPC the databaseis to reside in
+  SubnetA:
+    Type: String
+    Description: Subnet Id for Availability zone A
+  SubnetB:
+    Type: String
+    Description: Subnet Id for Availability zone B
+  SubnetC:
+    Type: String
+    Description: Subnet Id for Availability zone C
+  Environment:
+    Type: String
+    Description: The name of the environment being deployed to
+
+Resources:
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: RoppDB Subnet Group
+      SubnetIds:
+          - !Ref SubnetA
+          - !Ref SubnetB
+          - !Ref SubnetC
+
+  DBSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: DB Allowed Ports
+      VpcId:
+        Fn::ImportValue: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 172.31.0.0/19
+
+  DBSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Name: dbupdemo-secret
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "admin"}'
+        GenerateStringKey: "password"
+        PasswordLength: 30
+        ExcludeCharacters: '"@/\'
+  
+  DemoDB:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Engine: aurora-mysql
+      MasterUsername: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:password}}'
+      ServerlessV2ScalingConfiguration:
+           MinCapacity: 0.5
+           MaxCapacity: 2
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      BackupRetentionPeriod: 5
+      VpcSecurityGroupIds:
+        - !Ref DBSecurityGroup
+      Tags:
+        -
+          Key: "Env"
+          Value: !Ref Environment
+
+Outputs:
+  DBEndpoint:
+    Description: Primary endpoint of the Database
+    Value: !GetAtt DemoDB.Endpoint.Address
+    Export:
+      Name: !Sub DBUpDemoDBEndpoint-${Environment}
+  DBArn:
+    Description: The ARN of the DB Cluster
+    Value: !GetAtt DemoDB.DBClusterArn
+    Export:
+      Name: !Sub DBUpDemoDBArn-${Environment}
+  DBSecret:
+    Description: The ARN of the Secret storing the database admin credentials
+    Value: !GetAtt DBSecret.Id
+    Export:
+      Name: !Sub DBUpDemoDBSecret-${Environment}

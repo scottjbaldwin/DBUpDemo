@@ -63,6 +63,9 @@ Resources:
               - Effect: Allow
                 Action: cloudformation:*
                 Resource: '*'
+              - Effect: Allow
+                Action: rds:*
+                Resource: '*'
         - PolicyName: Artefact-KMS-Key-Access
           PolicyDocument:
             Version: "2012-10-17"

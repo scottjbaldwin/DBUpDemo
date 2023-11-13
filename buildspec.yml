@@ -49,4 +49,5 @@ phases:
 artifacts:
   files:
     - dbupdemostack.yml
+    - db.yml
   discard-paths: no

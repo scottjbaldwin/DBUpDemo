@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: CovidSafe Example application pipeline
+Description: dbup demo application pipeline
 Parameters:
   ProjectName:
     Type: String
@@ -165,8 +165,8 @@ Resources:
 
   CodeBuildProjectLogs:
     Type: AWS::Logs::LogGroup
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       LogGroupName: !Sub '/aws/codebuild/${ProjectName}_buildlogs'
       RetentionInDays: 30
@@ -320,7 +320,7 @@ Resources:
                   ActionTypeId:
                     Owner: AWS
                     Category: Source
-                    Provider: CodeStartSourceConnection
+                    Provider: CodeStarSourceConnection
                     Version: '1'
                   Configuration:
                     ConnectionArn: !Ref GitHubConnection
@@ -347,6 +347,32 @@ Resources:
                   RunOrder: 1
             - Name: DeployToDev
               Actions:
+                - Name: DeployDevDB
+                  Namespace: DeployDevDB
+                  RoleArn: !Sub arn:${AWS::Partition}:iam::${DevAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                  ActionTypeId:
+                    Category: Deploy
+                    Owner: AWS
+                    Provider: CloudFormation
+                    Version: '1'
+                  Configuration:
+                    ActionMode: CREATE_UPDATE
+                    RoleArn: !Sub arn:${AWS::Partition}:iam::${DevAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                    StackName: !Sub '${ProjectName}-DevDB-Stack'
+                    TemplatePath: OutputArtefact::db.yml
+                    Capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                    ParameterOverrides: |
+                      {
+                          "SubnetA" : "subnet-364f4151"
+                          "SubnetB" : "subnet-10c5fd59"
+                          "SubnetC" : "subnet-9c9920c4"
+                          "Environment" : "Dev"
+                      }
+                  InputArtifacts:
+                    - Name: OutputArtefact
+                  OutputArtifacts:
+                    - Name: !Sub '${ProjectName}DevDBDeployment'
+                  RunOrder: 1
                 - Name: DeployToDev
                   Namespace: DevDeploy
                   RoleArn: !Sub arn:${AWS::Partition}:iam::${DevAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
@@ -363,15 +389,43 @@ Resources:
                     Capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                     ParameterOverrides: |
                       {
-                          "Environment" : "Dev"
+                          "DBEndpoint" : "#{DeployDevDB.DBEndpoint}",
+                          "DBSecretArn" : "#{DeployDevDB.DBArn}"
                       }
                   InputArtifacts:
                     - Name: OutputArtefact
                   OutputArtifacts:
                     - Name: !Sub '${ProjectName}DevDeployment'
-                  RunOrder: 1
+                  RunOrder: 2
+
             - Name: DeployToProd
               Actions:
+                - Name: DeployProdDB
+                  Namespace: DeployProdDB
+                  RoleArn: !Sub arn:${AWS::Partition}:iam::${DevAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                  ActionTypeId:
+                    Category: Deploy
+                    Owner: AWS
+                    Provider: CloudFormation
+                    Version: '1'
+                  Configuration:
+                    ActionMode: CREATE_UPDATE
+                    RoleArn: !Sub arn:${AWS::Partition}:iam::${DevAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                    StackName: !Sub '${ProjectName}-ProdDB-Stack'
+                    TemplatePath: OutputArtefact::db.yml
+                    Capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                    ParameterOverrides: |
+                      {
+                          "SubnetA" : "subnet-040170d2bfdacdd6e"
+                          "SubnetB" : "subnet-0377e6e3ea7a41d05"
+                          "SubnetC" : "subnet-0d91f43cbfd35309b"
+                          "Environment" : "Prod"
+                      }
+                  InputArtifacts:
+                    - Name: OutputArtefact
+                  OutputArtifacts:
+                    - Name: !Sub '${ProjectName}ProdDBDeployment'
+                  RunOrder: 1
                 - Name: CreateProdChangeSet
                   RoleArn: !Sub arn:${AWS::Partition}:iam::${ProdAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
                   ActionTypeId:
@@ -388,11 +442,12 @@ Resources:
                     Capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM
                     ParameterOverrides: |
                       {
-                          "Environment" : "Prod"
+                          "DBEndpoint" : "#{DeployProdDB.DBEndpoint}",
+                          "DBSecretArn" : "#{DeployProdDB.DBArn}"
                       }
                   InputArtifacts:
                     - Name: OutputArtefact
-                  RunOrder: 1
+                  RunOrder: 2
                 - Name: DeploymentApproval
                   ActionTypeId:
                     Category: Approval
