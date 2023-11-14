@@ -66,6 +66,15 @@ Resources:
               - Effect: Allow
                 Action: rds:*
                 Resource: '*'
+              - Effect: Allow
+                Action: 
+                  - ec2:CreateSecurityGroup
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:DeleteSecurityGroup
+                Resource: '*'
+              - Effect: Allow
+                Action: secretsmanager:*
+                Resource: '*'
         - PolicyName: Artefact-KMS-Key-Access
           PolicyDocument:
             Version: "2012-10-17"
