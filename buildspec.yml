@@ -26,7 +26,7 @@ phases:
       - dotnet build ./src/dbupdemo/dbupdemo.csproj
 
       # run unit tests
-      - dotnet test ./test/CovidAPI.Tests/dbupdemo.Tests.csproj --verbosity normal --logger "trx;LogFileName=salad.Api.trx" --results-directory './testresults'
+      - dotnet test ./test/dbupdemo.Tests/dbupdemo.Tests.csproj --verbosity normal --logger "trx;LogFileName=dbupdemo.trx" --results-directory './testresults' --collect:"XPlat Code Coverage"
 
   post_build:
     commands:
@@ -45,6 +45,18 @@ phases:
         --s3-prefix dbupdemo/$CODEBUILD_BUILD_ID
         --output-template dbupdemostack.yml
         --msbuild-parameters $MSBUILD_PARAMETERS
+
+reports:
+  backend:
+    file-format: VisualStudioTrx
+    files:
+      - '**/*.trx'
+    base-directory: './testresults'
+  backend-code-coverage:
+    file-format: COBERTURAXML
+    files:
+      - '**/*.cobertura.xml'
+    base-directory: './testresults'
 
 artifacts:
   files:
