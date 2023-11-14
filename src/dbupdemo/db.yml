@@ -31,8 +31,7 @@ Resources:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: DB Allowed Ports
-      VpcId:
-        Fn::ImportValue: !Ref VPCId
+      VpcId: !Ref VPCId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 3306
