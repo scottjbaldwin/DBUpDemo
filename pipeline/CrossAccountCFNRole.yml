@@ -79,8 +79,8 @@ Resources:
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
-                  - log:CreateLogStream
-                  - log:PutRetentionPolicy
+                  - logs:CreateLogStream
+                  - logs:PutRetentionPolicy
                 Resource: '*'
         - PolicyName: Artefact-KMS-Key-Access
           PolicyDocument:
