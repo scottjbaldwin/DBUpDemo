@@ -80,6 +80,7 @@ Resources:
                 Action:
                   - logs:CreateLogGroup
                   - log:CreateLogStream
+                  - log:PutRetentionPolicy
                 Resource: '*'
         - PolicyName: Artefact-KMS-Key-Access
           PolicyDocument:
