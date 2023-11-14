@@ -39,6 +39,7 @@ public class Functions
     public async Task SchemaUpgrade(SchemaUpgradeEvent evt, ILambdaContext context)
     {
         context.Logger.LogInformation($"Schema Upgrade for build {evt.BuildIdentifier} initiated.");
+        await Task.CompletedTask;
     }
 
 }
