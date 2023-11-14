@@ -363,9 +363,10 @@ Resources:
                     Capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                     ParameterOverrides: |
                       {
-                          "SubnetA" : "subnet-364f4151"
-                          "SubnetB" : "subnet-10c5fd59"
-                          "SubnetC" : "subnet-9c9920c4"
+                          "VPCId" : "vpc-60604607",
+                          "SubnetA" : "subnet-364f4151",
+                          "SubnetB" : "subnet-10c5fd59",
+                          "SubnetC" : "subnet-9c9920c4",
                           "Environment" : "Dev"
                       }
                   InputArtifacts:
@@ -416,9 +417,10 @@ Resources:
                     Capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                     ParameterOverrides: |
                       {
-                          "SubnetA" : "subnet-040170d2bfdacdd6e"
-                          "SubnetB" : "subnet-0377e6e3ea7a41d05"
-                          "SubnetC" : "subnet-0d91f43cbfd35309b"
+                          "VPCId" : "vpc-0e21a1d095050f2da",
+                          "SubnetA" : "subnet-040170d2bfdacdd6e",
+                          "SubnetB" : "subnet-0377e6e3ea7a41d05",
+                          "SubnetC" : "subnet-0d91f43cbfd35309b",
                           "Environment" : "Prod"
                       }
                   InputArtifacts:
