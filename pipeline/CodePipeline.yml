@@ -458,7 +458,7 @@ Resources:
                     Version: '1'
                   Configuration:
                     NotificationArn: !Ref ProdApprovalGateTopic
-                  RunOrder: 2
+                  RunOrder: 3
                 - Name: ExecuteProdChangeSet
                   Namespace: ProdDeploy
                   RoleArn: !Sub arn:${AWS::Partition}:iam::${ProdAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
@@ -474,7 +474,7 @@ Resources:
                     ChangeSetName: !Sub '${ProjectName}-Prod-ChangeSet'
                   OutputArtifacts:
                     - Name: !Sub '${ProjectName}ProdChangeSet'
-                  RunOrder: 3
+                  RunOrder: 4
 
   PipelineSNSTopic:
     Type: AWS::SNS::Topic
