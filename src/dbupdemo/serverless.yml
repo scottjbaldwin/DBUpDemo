@@ -20,7 +20,9 @@ Resources:
       CodeUri: ""
       MemorySize: 256
       Timeout: 30
-      Role: 
+      Role: !GetAtt GetFunctionRole.Arn
+      Layers: 
+        - arn:aws:lambda:ap-southeast-2:580247275435:layer:LambdaInsightsExtension:38
       Policies:
       - AWSLambdaBasicExecutionRole
       Events:
@@ -29,6 +31,36 @@ Resources:
           Properties:
             Path: /
             Method: GET
+
+  GetFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: Allow
+            Action: 'sts:AssumeRole'
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy'
+
+  GetFunctionCloudWatchLogsPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: GetFunctionCloudWatchLogsPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          -
+            Effect: Allow
+            Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-GetFunction-*'
+      Roles:
+        - !Ref GetFunctionRole
 
   GetFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -46,11 +78,42 @@ Resources:
       CodeUri: ""
       MemorySize: 1024
       Timeout: 900
+      Role: !GetAtt DbUpFunctionRole.Arn
       Environment:
         Variables:
             DBEndpoint: !Ref DBEndpoint
             DBName: dbupdemo
             DBSecret: !Ref DBSecretArn
+
+  DbUpFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: Allow
+            Action: 'sts:AssumeRole'
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy'
+
+  DbUpFunctionCloudWatchLogsPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DbUpFunctionCloudWatchLogsPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          -
+            Effect: Allow
+            Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-DbUpFunction-*'
+      Roles:
+        - !Ref DbUpFunctionRole
 
   DbUpFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -59,6 +122,23 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${DbUpFunction}"
       RetentionInDays: 30
+
+  DbSecretsPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DBSecretsPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          -
+            Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource: !Ref DBSecretArn
+      Roles:
+        - !Ref GetFunctionRole
+        - !Ref DbUpFunctionRole
+
 
 Outputs:
   ApiURL:
