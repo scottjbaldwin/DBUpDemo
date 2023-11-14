@@ -45,7 +45,7 @@ phases:
         --s3-prefix dbupdemo/$CODEBUILD_BUILD_ID
         --output-template dbupdemostack.yml
         --msbuild-parameters $MSBUILD_PARAMETERS
-      - cp .\src\dbupdemo\db.yml .\db.yml
+      - cp ./src/dbupdemo/db.yml ./db.yml
 
 reports:
   backend:
