@@ -86,3 +86,6 @@ Outputs:
     Value: !GetAtt DBSecret.Id
     Export:
       Name: !Sub DBUpDemoDBSecret-${Environment}
+  DBSecurityGroupId:
+    Description: The Security Group Id for the Database
+    Value: !GetAtt DBSecurityGroup.GroupId

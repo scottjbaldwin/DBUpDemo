@@ -8,7 +8,18 @@ Parameters:
   DBSecretArn: 
     Type: String
     Description: The Arn of the secret to use to connect to the database for upgrade purposes.
-  
+  DBSecurityGroup:
+    Type: String
+    Description: The Security Group for the DB
+  SubnetA:
+    Type: String
+    Description: Subnet Id for Availability zone A
+  SubnetB:
+    Type: String
+    Description: Subnet Id for Availability zone B
+  SubnetC:
+    Type: String
+    Description: Subnet Id for Availability zone C
 Resources:
   GetFunction:
     Type: AWS::Serverless::Function
@@ -36,6 +47,13 @@ Resources:
             DBEndpoint: !Ref DBEndpoint
             DBName: dbupdemo
             DBSecret: !Ref DBSecretArn
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref DBSecurityGroup
+        SubnetIds:
+          - !Ref SubnetA
+          - !Ref SubnetB
+          - !Ref SubnetC
 
   GetFunctionRole:
     Type: AWS::IAM::Role
@@ -89,6 +107,13 @@ Resources:
             DBEndpoint: !Ref DBEndpoint
             DBName: dbupdemo
             DBSecret: !Ref DBSecretArn
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref DBSecurityGroup
+        SubnetIds:
+          - !Ref SubnetA
+          - !Ref SubnetB
+          - !Ref SubnetC
 
   DbUpFunctionRole:
     Type: AWS::IAM::Role
