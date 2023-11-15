@@ -14,7 +14,8 @@
     <PackageReference Include="Amazon.Lambda.Core" Version="2.1.0" />
     <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.3.0" />
     <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.5.0" />
-    <PackageReference Include="DbUp" Version="5.0.8" />
+    <PackageReference Include="AWSSDK.SecretsManager" Version="3.7.300.2" />
+    <PackageReference Include="dbup-mysql" Version="5.0.37" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Schema\Script0001 - Basic Database.sql" />

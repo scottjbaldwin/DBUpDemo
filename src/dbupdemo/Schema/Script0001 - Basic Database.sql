@@ -1,13 +1,32 @@
 USE `dbupdemo`
 
 CREATE TABLE IF NOT EXISTS `dbupdemo`.`Contacts` (
-    Id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    ContactId INT UNSIGNED NOT NULL AUTO_INCREMENT,
     GivenName VARCHAR(100),
     Surname VARCHAR(100),
-    ContactType INT,
+    ContactType varchar(20),
     CreatedDate DATETIME NOT NULL,
     LastModifiedDate DATETIME NOT NULL,
     Notes VARCHAR(500),
-  PRIMARY KEY (Id)
+  PRIMARY KEY (ContactId),
+)
+ENGINE = InnoDB;
+
+CREATE TABLE IF NOT EXISTS `dbupdemo`.`Address` (
+	AddressId INT UNSIGNED NOT NULL AUTO_INCREMENT,
+	Street nvarchar(100),
+	City nvarchar(50),
+	State nvarchar(50),
+	Country nvarchar(50),
+	Postcode nvarchar(5)
+)
+ENGINE = InnoDB;
+
+CREATE TABLE IF NOT EXISTS `dbupdemo`.`ContactAddress` (
+	ContactAddressId INT UNSIGNED NOT NULL AUTO_INCREMENT,
+	ContactId uniqueidentifier,
+	AddressId uniqueidentifier,
+	AddressType int, -- 1 = postal, 2 = billing
+  PRIMARY KEY (ContactAddressId)
 )
 ENGINE = InnoDB;

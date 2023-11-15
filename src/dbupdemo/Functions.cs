@@ -1,6 +1,9 @@
 using System.Net;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.APIGatewayEvents;
+using DbUp;
+using MySql.Data.MySqlClient;
+using System.Reflection;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -38,8 +41,27 @@ public class Functions
 
     public async Task SchemaUpgrade(SchemaUpgradeEvent evt, ILambdaContext context)
     {
+        MySqlConnectionStringBuilder builder = new MySqlConnectionStringBuilder();
+        context.Logger.LogInformation("creating connection string from environment variables");
+        var connectionString = await builder.BuildFromEnvironmentVariables();
+
         context.Logger.LogInformation($"Schema Upgrade for build {evt.BuildIdentifier} initiated.");
-        await Task.CompletedTask;
+        var upgrader = DeployChanges.To
+                .MySqlDatabase(connectionString)
+                .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly())
+                .WithExecutionTimeout(TimeSpan.FromSeconds(300))
+                .Build();
+
+        var result = upgrader.PerformUpgrade();
+
+        if (!result.Successful)
+        {
+            context.Logger.LogError($"schema Upgrade failed, {result.Error.Message}");
+        }
+        else
+        {
+            context.Logger.LogInformation("Schema Upgrade successful.");
+        }
     }
 
 }
