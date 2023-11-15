@@ -403,7 +403,7 @@ Resources:
               Actions:
                 - Name: DeployProdDB
                   Namespace: DeployProdDB
-                  RoleArn: !Sub arn:${AWS::Partition}:iam::${DevAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                  RoleArn: !Sub arn:${AWS::Partition}:iam::${ProdAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
                   ActionTypeId:
                     Category: Deploy
                     Owner: AWS
@@ -411,7 +411,7 @@ Resources:
                     Version: '1'
                   Configuration:
                     ActionMode: CREATE_UPDATE
-                    RoleArn: !Sub arn:${AWS::Partition}:iam::${DevAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                    RoleArn: !Sub arn:${AWS::Partition}:iam::${ProdAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
                     StackName: !Sub '${ProjectName}-ProdDB-Stack'
                     TemplatePath: OutputArtefact::db.yml
                     Capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
