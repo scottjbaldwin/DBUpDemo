@@ -72,6 +72,9 @@ Resources:
                   - ec2:AuthorizeSecurityGroupIngress
                   - ec2:DeleteSecurityGroup
                   - ec2:DescribeSecurityGroups
+                  - ec2:DescribeSubnets
+                  - ec2:CreateNetworkInterface
+                  - ec2:DeleteNetworkInterface
                 Resource: '*'
               - Effect: Allow
                 Action: secretsmanager:*
