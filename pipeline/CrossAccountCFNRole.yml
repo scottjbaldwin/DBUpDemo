@@ -75,6 +75,7 @@ Resources:
                   - ec2:DescribeSubnets
                   - ec2:CreateNetworkInterface
                   - ec2:DeleteNetworkInterface
+                  - ec2:DescribeVpcs
                 Resource: '*'
               - Effect: Allow
                 Action: secretsmanager:*
