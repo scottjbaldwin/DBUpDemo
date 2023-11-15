@@ -391,7 +391,7 @@ Resources:
                     ParameterOverrides: |
                       {
                           "DBEndpoint" : "#{DeployDevDB.DBEndpoint}",
-                          "DBSecretArn" : "#{DeployDevDB.DBSecret}"
+                          "DBSecretArn" : "#{DeployDevDB.DBSecret}",
                           "SubnetA" : "subnet-364f4151",
                           "SubnetB" : "subnet-10c5fd59",
                           "SubnetC" : "subnet-9c9920c4",
@@ -449,7 +449,7 @@ Resources:
                     ParameterOverrides: |
                       {
                           "DBEndpoint" : "#{DeployProdDB.DBEndpoint}",
-                          "DBSecretArn" : "#{DeployProdDB.DBSecret}"
+                          "DBSecretArn" : "#{DeployProdDB.DBSecret}",
                           "SubnetA" : "subnet-040170d2bfdacdd6e",
                           "SubnetB" : "subnet-0377e6e3ea7a41d05",
                           "SubnetC" : "subnet-0d91f43cbfd35309b",
