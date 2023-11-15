@@ -391,7 +391,7 @@ Resources:
                     ParameterOverrides: |
                       {
                           "DBEndpoint" : "#{DeployDevDB.DBEndpoint}",
-                          "DBSecretArn" : "#{DeployDevDB.DBArn}"
+                          "DBSecretArn" : "#{DeployDevDB.DBSecret}"
                       }
                   InputArtifacts:
                     - Name: OutputArtefact
@@ -445,7 +445,7 @@ Resources:
                     ParameterOverrides: |
                       {
                           "DBEndpoint" : "#{DeployProdDB.DBEndpoint}",
-                          "DBSecretArn" : "#{DeployProdDB.DBArn}"
+                          "DBSecretArn" : "#{DeployProdDB.DBSecret}"
                       }
                   InputArtifacts:
                     - Name: OutputArtefact
