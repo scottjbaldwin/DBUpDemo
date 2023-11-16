@@ -47,13 +47,13 @@ Resources:
             DBEndpoint: !Ref DBEndpoint
             DBName: dbupdemo
             DBSecret: !Ref DBSecretArn
-    #  VpcConfig:
-    #    SecurityGroupIds:
-    #      - !Ref DBSecurityGroup
-    #    SubnetIds:
-    #      - !Ref SubnetA
-    #      - !Ref SubnetB
-    #      - !Ref SubnetC
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref DBSecurityGroup
+        SubnetIds:
+          - !Ref SubnetA
+          - !Ref SubnetB
+          - !Ref SubnetC
 
   GetFunctionRole:
     Type: AWS::IAM::Role
@@ -107,14 +107,14 @@ Resources:
             DBEndpoint: !Ref DBEndpoint
             DBName: dbupdemo
             DBSecret: !Ref DBSecretArn
-      #VpcConfig:
-      #  SecurityGroupIds:
-      #    - !Ref DBSecurityGroup
-      #  SubnetIds:
-      #    - !Ref SubnetA
-      #    - !Ref SubnetB
-      #    - !Ref SubnetC
-#
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref DBSecurityGroup
+        SubnetIds:
+          - !Ref SubnetA
+          - !Ref SubnetB
+          - !Ref SubnetC
+
   DbUpFunctionRole:
     Type: AWS::IAM::Role
     Properties:
