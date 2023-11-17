@@ -1,6 +1,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Amazon.Lambda.Core;
 using Amazon.SecretsManager;
 using Amazon.SecretsManager.Model;
 using MySql.Data.MySqlClient;
@@ -17,17 +18,22 @@ public class DatabaseCredentials
 
 public static class ExtensionMethods
 {
-    public static async Task<string> BuildFromEnvironmentVariables(this MySqlConnectionStringBuilder builder)
+    public static async Task<string> BuildFromEnvironmentVariables(this MySqlConnectionStringBuilder builder, ILambdaLogger logger)
     {
         builder.Server = Environment.GetEnvironmentVariable("DBEndpoint");
         builder.Port = 3306;
         builder.Database = Environment.GetEnvironmentVariable("DBName");
+        var secretId = Environment.GetEnvironmentVariable("DBSecret");
+
+        logger.LogInformation($"Getting secret value from secret: {secretId}");
 
         var secretsManager = new AmazonSecretsManagerClient();
         var secret = await secretsManager.GetSecretValueAsync(new GetSecretValueRequest
         {
-            SecretId = Environment.GetEnvironmentVariable("DBSecret")
+            SecretId =  secretId
         });
+
+        logger.LogInformation($"Retrieved secret string: {secret.SecretString}");
 
         var credentials = JsonSerializer.Deserialize<DatabaseCredentials>(secret.SecretString);
 
