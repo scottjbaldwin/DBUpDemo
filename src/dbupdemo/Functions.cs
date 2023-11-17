@@ -45,12 +45,16 @@ public class Functions
         context.Logger.LogInformation("creating connection string from environment variables");
         var connectionString = await builder.BuildFromEnvironmentVariables();
 
+        context.Logger.LogInformation($"connection string: {connectionString}");
+
         context.Logger.LogInformation($"Schema Upgrade for build {evt.BuildIdentifier} initiated.");
         var upgrader = DeployChanges.To
                 .MySqlDatabase(connectionString)
                 .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly())
                 .WithExecutionTimeout(TimeSpan.FromSeconds(300))
                 .Build();
+
+        context.Logger.LogInformation("Attempting to perform the upgrade");
 
         var result = upgrader.PerformUpgrade();
 

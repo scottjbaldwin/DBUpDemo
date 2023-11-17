@@ -76,6 +76,7 @@ Resources:
                   - ec2:CreateNetworkInterface
                   - ec2:DeleteNetworkInterface
                   - ec2:DescribeVpcs
+                  - ec2:RevokeSecurityGroupIngress
                 Resource: '*'
               - Effect: Allow
                 Action: secretsmanager:*
