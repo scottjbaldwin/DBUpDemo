@@ -78,6 +78,7 @@ Resources:
       DBClusterIdentifier: !Ref DemoDB
       DBSubnetGroupName: !Ref DBSubnetGroup
       Engine: aurora-mysql
+      DBInstanceClass: db.serverless
 
 Outputs:
   DBEndpoint:
