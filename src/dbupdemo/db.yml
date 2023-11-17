@@ -70,6 +70,15 @@ Resources:
           Key: "Env"
           Value: !Ref Environment
 
+  DemoDBInstance: 
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      DBClusterIdentifier: !Ref DemoDB
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      Engine: aurora-mysql
+
 Outputs:
   DBEndpoint:
     Description: Primary endpoint of the Database
