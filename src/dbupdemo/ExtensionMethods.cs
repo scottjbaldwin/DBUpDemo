@@ -27,7 +27,10 @@ public static class ExtensionMethods
 
         logger.LogInformation($"Getting secret value from secret: {secretId}");
 
-        var secretsManager = new AmazonSecretsManagerClient();
+        var config = new AmazonSecretsManagerConfig();
+        config.ServiceURL = "https://secretsmanager.ap-southeast-2.amazonaws.com";
+
+        var secretsManager = new AmazonSecretsManagerClient(config);
         var secret = await secretsManager.GetSecretValueAsync(new GetSecretValueRequest
         {
             SecretId =  secretId
