@@ -44,9 +44,11 @@ public class Functions
     {
         MySqlConnectionStringBuilder builder = new MySqlConnectionStringBuilder();
         context.Logger.LogInformation("creating connection string from environment variables");
-        var connectionString = await builder.BuildFromEnvironmentVariables(context.Logger);
+        var connectionString = await builder.BuildFromEnvironmentVariables(context.Logger, false);
 
         await CreateDBIfNotExists(connectionString, context.Logger);
+
+        connectionString = await builder.BuildFromEnvironmentVariables(context.Logger, true);
         context.Logger.LogInformation($"Schema Upgrade for build {evt.BuildIdentifier} initiated.");
         var upgrader = DeployChanges.To
                 .MySqlDatabase(connectionString)

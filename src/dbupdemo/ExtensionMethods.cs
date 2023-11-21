@@ -18,11 +18,14 @@ public class DatabaseCredentials
 
 public static class ExtensionMethods
 {
-    public static async Task<string> BuildFromEnvironmentVariables(this MySqlConnectionStringBuilder builder, ILambdaLogger logger)
+    public static async Task<string> BuildFromEnvironmentVariables(this MySqlConnectionStringBuilder builder, ILambdaLogger logger, bool includeDbName)
     {
         builder.Server = Environment.GetEnvironmentVariable("DBEndpoint");
         builder.Port = 3306;
-        builder.Database = Environment.GetEnvironmentVariable("DBName");
+        if (includeDbName)
+        {
+            builder.Database = Environment.GetEnvironmentVariable("DBName");
+        }
         var secretId = Environment.GetEnvironmentVariable("DBSecret");
 
         logger.LogInformation($"Getting secret value from secret: {secretId}");
