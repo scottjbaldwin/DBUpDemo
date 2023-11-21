@@ -1,6 +1,6 @@
 USE `dbupdemo`
 
-CREATE TABLE IF NOT EXISTS `dbupdemo`.`Contacts` (
+CREATE TABLE IF NOT EXISTS `Contacts` (
     `ContactId` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `GivenName` VARCHAR(100),
     `Surname` VARCHAR(100),
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS `dbupdemo`.`Contacts` (
 )
 ENGINE = InnoDB;
 
-CREATE TABLE IF NOT EXISTS `dbupdemo`.`Address` (
+CREATE TABLE IF NOT EXISTS `Address` (
 	`AddressId` INT UNSIGNED NOT NULL AUTO_INCREMENT,
 	`Street` nvarchar(100),
 	`City` nvarchar(50),
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `dbupdemo`.`Address` (
 )
 ENGINE = InnoDB;
 
-CREATE TABLE IF NOT EXISTS `dbupdemo`.`ContactAddress` (
+CREATE TABLE IF NOT EXISTS `ContactAddress` (
 	`ContactAddressId` INT UNSIGNED NOT NULL AUTO_INCREMENT,
 	`ContactId` uniqueidentifier,
 	`AddressId` uniqueidentifier,
