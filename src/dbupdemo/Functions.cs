@@ -4,6 +4,7 @@ using Amazon.Lambda.APIGatewayEvents;
 using DbUp;
 using MySql.Data.MySqlClient;
 using System.Reflection;
+using Dapper;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -45,8 +46,7 @@ public class Functions
         context.Logger.LogInformation("creating connection string from environment variables");
         var connectionString = await builder.BuildFromEnvironmentVariables(context.Logger);
 
-        context.Logger.LogInformation($"connection string: {connectionString}");
-
+        await CreateDBIfNotExists(connectionString, context.Logger);
         context.Logger.LogInformation($"Schema Upgrade for build {evt.BuildIdentifier} initiated.");
         var upgrader = DeployChanges.To
                 .MySqlDatabase(connectionString)
@@ -65,6 +65,28 @@ public class Functions
         else
         {
             context.Logger.LogInformation("Schema Upgrade successful.");
+        }
+    }
+
+    public async Task CreateDBIfNotExists(string connectionString, ILambdaLogger logger)
+    {
+        using (var mysqlConnection = new MySqlConnection(connectionString))
+        {
+            logger.LogInformation("Opening connection to database to check for dbupdemo");
+            await mysqlConnection.OpenAsync();
+
+            logger.LogInformation("querying database to check for dbupdemo");
+            var databases = await mysqlConnection.QueryAsync<string>("SHOW DATABASES;");
+            logger.LogInformation($"Found {databases.Count()} databases");
+            if (databases.FirstOrDefault(d => d == "dbupdemo") == null)
+            {
+                logger.LogWarning("database dbupdemo not found... creating");
+                await mysqlConnection.ExecuteAsync("CREATE DATABASE dbupdemo;");
+            }
+            else
+            {
+                logger.LogInformation("database dbupdemo found");
+            }
         }
     }
 
