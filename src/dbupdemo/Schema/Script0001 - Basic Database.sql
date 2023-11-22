@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS `Contacts` (
     `CreatedDate` DATETIME NOT NULL,
     `LastModifiedDate` DATETIME NOT NULL,
     `Notes` VARCHAR(500),
-  PRIMARY KEY (`ContactId`),
+  PRIMARY KEY (`ContactId`)
 )
 ENGINE = InnoDB;
 
