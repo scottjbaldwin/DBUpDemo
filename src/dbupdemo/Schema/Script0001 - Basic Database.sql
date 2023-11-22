@@ -25,8 +25,8 @@ ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS `ContactAddress` (
 	`ContactAddressId` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-	`ContactId` uniqueidentifier,
-	`AddressId` uniqueidentifier,
+	`ContactId` INT UNSIGNED NOT NULL,
+	`AddressId` INT UNSIGNED NOT NULL,
 	`AddressType` int, -- 1 = postal, 2 = billing
   PRIMARY KEY (`ContactAddressId`)
 )
