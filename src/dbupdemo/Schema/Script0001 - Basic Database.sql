@@ -1,4 +1,4 @@
-USE `dbupdemo`
+USE `dbupdemo`;
 
 CREATE TABLE IF NOT EXISTS `Contacts` (
     `ContactId` INT UNSIGNED NOT NULL AUTO_INCREMENT,
