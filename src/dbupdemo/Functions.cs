@@ -63,6 +63,7 @@ public class Functions
         if (!result.Successful)
         {
             context.Logger.LogError($"schema Upgrade failed, {result.Error.Message}");
+            throw new Exception($"schema Upgrade failed, {result.Error.Message}");
         }
         else
         {
