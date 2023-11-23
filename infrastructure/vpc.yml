@@ -1,19 +1,19 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  Basic 2-tier VPC setup containing a DMZ and APP layer
+  Basic 2-tier VPC setup containing a Public and APP layer
 Parameters:
   VPCCIDR:
     Type: String
     Description: CIDR Block for VPC (Append CIDR Notation /18 for example)
-  DMZASubnet:
+  PublicASubnet:
     Type: String
-    Description: DMZ AZ-A Subnet Range (Append CIDR Notation /18 for example)
-  DMZBSubnet:
+    Description: Public AZ-A Subnet Range (Append CIDR Notation /18 for example)
+  PublicBSubnet:
     Type: String
-    Description: DMZ AZ-B Subnet Range (Append CIDR Notation /18 for example)
-  DMZCSubnet:
+    Description: Public AZ-B Subnet Range (Append CIDR Notation /18 for example)
+  PublicCSubnet:
     Type: String
-    Description: DMZ AZ-C Subnet Range (Append CIDR Notation /18 for example)
+    Description: Public AZ-C Subnet Range (Append CIDR Notation /18 for example)
   APPASubnet:
     Type: String
     Description: Private AZ-A Subnet Range (Append CIDR Notation /18 for example)
@@ -28,8 +28,6 @@ Parameters:
     Description: Which environment will this VPC be used for?
     AllowedValues:
       - dev
-      - test
-      - staging
       - prod
     Default: dev
   VPCLogRetentionDays:
@@ -100,7 +98,7 @@ Resources:
     Properties:
       LogGroupName: !Sub '${Environment}-VPCFlowLog'
       RetentionInDays: !Ref VPCLogRetentionDays
-  DMZTierASubnet:
+  PublicTierASubnet:
     Type: 'AWS::EC2::Subnet'
     Properties:
       VpcId: !Ref VPC
@@ -108,13 +106,13 @@ Resources:
         !Select
           - 0
           - !GetAZs
-      CidrBlock: !Sub '${DMZASubnet}'
+      CidrBlock: !Sub '${PublicASubnet}'
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DMZ-Tier-A
+          Value: !Sub ${AWS::StackName}-Public-Tier-A
         - Key: Network
           Value: !Ref 'AWS::StackId'
-  DMZTierBSubnet:
+  PublicTierBSubnet:
     Type: 'AWS::EC2::Subnet'
     Properties:
       VpcId: !Ref VPC
@@ -122,13 +120,13 @@ Resources:
         !Select
           - 1
           - !GetAZs
-      CidrBlock: !Sub '${DMZBSubnet}'
+      CidrBlock: !Sub '${PublicBSubnet}'
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DMZ-Tier-B
+          Value: !Sub ${AWS::StackName}-Public-Tier-B
         - Key: Network
           Value: !Ref 'AWS::StackId'
-  DMZTierCSubnet:
+  PublicTierCSubnet:
     Type: 'AWS::EC2::Subnet'
     Properties:
       VpcId: !Ref VPC
@@ -136,10 +134,10 @@ Resources:
         !Select
           - 2
           - !GetAZs
-      CidrBlock: !Sub '${DMZCSubnet}'
+      CidrBlock: !Sub '${PublicCSubnet}'
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DMZ-Tier-C
+          Value: !Sub ${AWS::StackName}-Public-Tier-C
         - Key: Network
           Value: !Ref 'AWS::StackId'
   AppTierASubnet:
@@ -204,27 +202,27 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}${Environment}-IGW
-  RouteTableNatA:
+  RouteTableAPPA:
     Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-${Environment}-NatA
-  RouteTableNatB:
+          Value: !Sub ${AWS::StackName}-${Environment}-RouteA
+  RouteTableAPPB:
     Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-${Environment}-NatB
-  RouteTableNatC:
+          Value: !Sub ${AWS::StackName}-${Environment}-RouteB
+  RouteTableAPPC:
     Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-${Environment}-NatC
+          Value: !Sub ${AWS::StackName}-${Environment}-RouteC
   RouteIGW:
     Type: 'AWS::EC2::Route'
     DependsOn: AttachGateway
@@ -232,36 +230,36 @@ Resources:
       RouteTableId: !Ref RouteTableIGW
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
-  DMZTierARouteTableAssociation:
+  PublicTierARouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
-      SubnetId: !Ref DMZTierASubnet
+      SubnetId: !Ref PublicTierASubnet
       RouteTableId: !Ref RouteTableIGW
-  DMZTierBRouteTableAssociation:
+  PublicTierBRouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
-      SubnetId: !Ref DMZTierBSubnet
+      SubnetId: !Ref PublicTierBSubnet
       RouteTableId: !Ref RouteTableIGW
-  DMZTierCRouteTableAssociation:
+  PublicTierCRouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
-      SubnetId: !Ref DMZTierCSubnet
+      SubnetId: !Ref PublicTierCSubnet
       RouteTableId: !Ref RouteTableIGW
   AppTierARouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref AppTierASubnet
-      RouteTableId: !Ref RouteTableNatA
+      RouteTableId: !Ref RouteTableAPPA
   AppTierBRouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref AppTierBSubnet
-      RouteTableId: !Ref RouteTableNatB
+      RouteTableId: !Ref RouteTableAPPB
   AppTierCRouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref AppTierCSubnet
-      RouteTableId: !Ref RouteTableNatC
+      RouteTableId: !Ref RouteTableAPPC
   NetworkAcl:
     Type: 'AWS::EC2::NetworkAcl'
     Properties:
@@ -287,10 +285,10 @@ Resources:
       CidrBlock: 0.0.0.0/0
       RuleAction: allow
       NetworkAclId: !Ref NetworkAcl
-  NATSecurityGroup:
+  AppSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      GroupDescription: Enable internal access to the NAT device and Interfaces
+      GroupDescription: Enable internal access to the vpc endpoints
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: '-1'
@@ -302,20 +300,20 @@ Resources:
           FromPort: '1'
           ToPort: '65000'
           CidrIp: 0.0.0.0/0
-  DMZTierANetworkAclAssociation:
+  PublicTierANetworkAclAssociation:
     Type: 'AWS::EC2::SubnetNetworkAclAssociation'
     Properties:
-      SubnetId: !Ref DMZTierASubnet
+      SubnetId: !Ref PublicTierASubnet
       NetworkAclId: !Ref NetworkAcl
-  DMZTierBNetworkAclAssociation:
+  PublicTierBNetworkAclAssociation:
     Type: 'AWS::EC2::SubnetNetworkAclAssociation'
     Properties:
-      SubnetId: !Ref DMZTierBSubnet
+      SubnetId: !Ref PublicTierBSubnet
       NetworkAclId: !Ref NetworkAcl
-  DMZTierCNetworkAclAssociation:
+  PublicTierCNetworkAclAssociation:
     Type: 'AWS::EC2::SubnetNetworkAclAssociation'
     Properties:
-      SubnetId: !Ref DMZTierCSubnet
+      SubnetId: !Ref PublicTierCSubnet
       NetworkAclId: !Ref NetworkAcl
   AppTierANetworkAclAssociation:
     Type: 'AWS::EC2::SubnetNetworkAclAssociation'
@@ -351,9 +349,9 @@ Resources:
             Resource:
               - '*'
       RouteTableIds:
-        - !Ref RouteTableNatA
-        - !Ref RouteTableNatB
-        - !Ref RouteTableNatC
+        - !Ref RouteTableAPPA
+        - !Ref RouteTableAPPB
+        - !Ref RouteTableAPPC
       ServiceName: !Sub  'com.amazonaws.${AWS::Region}.s3'
       VpcId: !Ref VPC
   DynamoEndpoint:
@@ -368,9 +366,9 @@ Resources:
             Resource:
               - '*'
       RouteTableIds:
-        - !Ref RouteTableNatA
-        - !Ref RouteTableNatB
-        - !Ref RouteTableNatC
+        - !Ref RouteTableAPPA
+        - !Ref RouteTableAPPB
+        - !Ref RouteTableAPPC
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.dynamodb'
       VpcId: !Ref VPC
   SQSEndpoint:
@@ -385,7 +383,7 @@ Resources:
             Resource:
               - '*'
       SecurityGroupIds:
-        - !Ref NATSecurityGroup
+        - !Ref AppSecurityGroup
       PrivateDnsEnabled: 'true'
       SubnetIds:
         - !Ref AppTierASubnet
@@ -406,7 +404,7 @@ Resources:
             Resource:
               - '*'
       SecurityGroupIds:
-        - !Ref NATSecurityGroup
+        - !Ref AppSecurityGroup
       PrivateDnsEnabled: 'true'
       SubnetIds:
         - !Ref AppTierASubnet
@@ -427,7 +425,7 @@ Resources:
             Resource:
               - '*'
       SecurityGroupIds:
-        - !Ref NATSecurityGroup
+        - !Ref AppSecurityGroup
       PrivateDnsEnabled: 'true'
       SubnetIds:
         - !Ref AppTierASubnet
@@ -436,6 +434,19 @@ Resources:
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
       VpcId: !Ref VPC
       VpcEndpointType: Interface
+  SSMMessagesVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ssmmessages
+      VpcId: !Ref VPC
+      SubnetIds:
+        - !Ref AppTierASubnet
+        - !Ref AppTierBSubnet
+        - !Ref AppTierCSubnet
+      SecurityGroupIds:
+        - !Ref AppSecurityGroup
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: True
 Outputs:
   VPCId:
     Description: VPC ID
@@ -449,21 +460,21 @@ Outputs:
       - CidrBlock
     Export:
       Name: !Sub '${Environment}-VPCStack-CidrBlock'
-  DMZTierASubnet:
-    Description: DMZTierASubnet
-    Value: !Ref DMZTierASubnet
+  PublicTierASubnet:
+    Description: PublicTierASubnet
+    Value: !Ref PublicTierASubnet
     Export:
-      Name: !Sub '${Environment}-VPCStack-DMZTierASubnet'
-  DMZTierBSubnet:
-    Description: DMZTierBSubnet
-    Value: !Ref DMZTierBSubnet
+      Name: !Sub '${Environment}-VPCStack-PublicTierASubnet'
+  PublicTierBSubnet:
+    Description: PublicTierBSubnet
+    Value: !Ref PublicTierBSubnet
     Export:
-      Name: !Sub '${Environment}-VPCStack-DMZTierBSubnet'
-  DMZTierCSubnet:
-    Description: DMZTierCSubnet
-    Value: !Ref DMZTierCSubnet
+      Name: !Sub '${Environment}-VPCStack-PublicTierBSubnet'
+  PublicTierCSubnet:
+    Description: PublicTierCSubnet
+    Value: !Ref PublicTierCSubnet
     Export:
-      Name: !Sub '${Environment}-VPCStack-DMZTierCSubnet'
+      Name: !Sub '${Environment}-VPCStack-PublicTierCSubnet'
   AppTierASubnet:
     Description: AppTierASubnet
     Value: !Ref AppTierASubnet
@@ -480,8 +491,8 @@ Outputs:
     Export:
       Name: !Sub '${Environment}-VPCStack-AppTierCSubnet'
   EndPointSecurityGroup:
-    Description: NATSecurityGroup
-    Value: !Ref NATSecurityGroup
+    Description: AppSecurityGroup
+    Value: !Ref AppSecurityGroup
     Export:
       Name: !Sub '${Environment}-VPCStack-EndPointSG'
   AppTierAAZ:
