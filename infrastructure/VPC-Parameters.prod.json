@@ -1,0 +1,34 @@
+[
+  {
+    "ParameterKey": "VPCCIDR",
+    "ParameterValue": "10.2.0.0/19"
+  },
+  {
+    "ParameterKey": "PublicASubnet",
+    "ParameterValue": "10.2.0.0/22"
+  },
+  {
+    "ParameterKey": "PublicBSubnet",
+    "ParameterValue": "10.2.4.0/22"
+  },
+  {
+    "ParameterKey": "PublicCSubnet",
+    "ParameterValue": "10.2.8.0/22"
+  },
+  {
+    "ParameterKey": "APPASubnet",
+    "ParameterValue": "10.2.12.0/22"
+  },
+  {
+    "ParameterKey": "APPBSubnet",
+    "ParameterValue": "10.2.16.0/22"
+  },
+  {
+    "ParameterKey": "APPCSubnet",
+    "ParameterValue": "10.2.20.0/22"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "prod"
+  }
+]
