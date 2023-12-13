@@ -426,6 +426,17 @@ Resources:
         - !Ref AppSecurityGroup
       VpcEndpointType: Interface
       PrivateDnsEnabled: True
+  EC2MessagesVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ec2messages
+      VpcId: !Ref VPC
+      SubnetIds:
+        - !Ref AppTierASubnet
+      SecurityGroupIds:
+        - !Ref AppSecurityGroup
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: True
 Outputs:
   VPCId:
     Description: VPC ID
