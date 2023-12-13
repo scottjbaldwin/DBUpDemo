@@ -371,27 +371,6 @@ Resources:
         - !Ref RouteTableAPPC
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.dynamodb'
       VpcId: !Ref VPC
-  SQSEndpoint:
-    Type: 'AWS::EC2::VPCEndpoint'
-    Properties:
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal: '*'
-            Action: '*'
-            Resource:
-              - '*'
-      SecurityGroupIds:
-        - !Ref AppSecurityGroup
-      PrivateDnsEnabled: 'true'
-      SubnetIds:
-        - !Ref AppTierASubnet
-        - !Ref AppTierBSubnet
-        - !Ref AppTierCSubnet
-      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sqs'
-      VpcId: !Ref VPC
-      VpcEndpointType: Interface
   SecManEndpoint:
     Type: 'AWS::EC2::VPCEndpoint'
     Properties:
