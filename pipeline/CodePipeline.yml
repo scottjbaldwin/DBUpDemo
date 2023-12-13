@@ -363,10 +363,10 @@ Resources:
                     Capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                     ParameterOverrides: |
                       {
-                          "VPCId" : "vpc-60604607",
-                          "SubnetA" : "subnet-364f4151",
-                          "SubnetB" : "subnet-10c5fd59",
-                          "SubnetC" : "subnet-9c9920c4",
+                          "VPCId" : "vpc-0388f50752b10e9b9",
+                          "SubnetA" : "subnet-045a3ae161243ea2b",
+                          "SubnetB" : "subnet-030fff02a6aeb8844",
+                          "SubnetC" : "subnet-0843fcee4e48e63cc",
                           "Environment" : "Dev"
                       }
                   InputArtifacts:
@@ -392,9 +392,9 @@ Resources:
                       {
                           "DBEndpoint" : "#{DeployDevDB.DBEndpoint}",
                           "DBSecretArn" : "#{DeployDevDB.DBSecret}",
-                          "SubnetA" : "subnet-364f4151",
-                          "SubnetB" : "subnet-10c5fd59",
-                          "SubnetC" : "subnet-9c9920c4",
+                          "SubnetA" : "subnet-045a3ae161243ea2b",
+                          "SubnetB" : "subnet-030fff02a6aeb8844",
+                          "SubnetC" : "subnet-0843fcee4e48e63cc",
                           "DBSecurityGroup" : "#{DeployDevDB.DBSecurityGroupId}"
                       }
                   InputArtifacts:
@@ -421,10 +421,10 @@ Resources:
                     Capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                     ParameterOverrides: |
                       {
-                          "VPCId" : "vpc-0e21a1d095050f2da",
-                          "SubnetA" : "subnet-040170d2bfdacdd6e",
-                          "SubnetB" : "subnet-0377e6e3ea7a41d05",
-                          "SubnetC" : "subnet-0d91f43cbfd35309b",
+                          "VPCId" : "vpc-0b382a45fabfed486",
+                          "SubnetA" : "	subnet-0318320d4777c2e43",
+                          "SubnetB" : "subnet-00bc5937be0dfafee",
+                          "SubnetC" : "subnet-0ad78bbb02c81485d",
                           "Environment" : "Prod"
                       }
                   InputArtifacts:
@@ -450,9 +450,9 @@ Resources:
                       {
                           "DBEndpoint" : "#{DeployProdDB.DBEndpoint}",
                           "DBSecretArn" : "#{DeployProdDB.DBSecret}",
-                          "SubnetA" : "subnet-040170d2bfdacdd6e",
-                          "SubnetB" : "subnet-0377e6e3ea7a41d05",
-                          "SubnetC" : "subnet-0d91f43cbfd35309b",
+                          "SubnetA" : "	subnet-0318320d4777c2e43",
+                          "SubnetB" : "subnet-00bc5937be0dfafee",
+                          "SubnetC" : "subnet-0ad78bbb02c81485d",
                           "DBSecurityGroup" : "#{DeployProdDB.DBSecurityGroupId}"
                       }
                   InputArtifacts:
