@@ -23,6 +23,8 @@ Parameters:
 Resources:
   GetFunction:
     Type: AWS::Serverless::Function
+    DependsOn:
+      - VpcPolicy
     Properties:
       Architectures:
       - x86_64
@@ -95,6 +97,8 @@ Resources:
 
   DbUpFunction:
     Type: AWS::Serverless::Function
+    DependsOn:
+      - VpcPolicy
     Properties:
       Handler: dbupdemo::dbupdemo.Functions::SchemaUpgrade
       Runtime: dotnet6
