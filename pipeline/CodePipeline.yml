@@ -422,7 +422,7 @@ Resources:
                     ParameterOverrides: |
                       {
                           "VPCId" : "vpc-0b382a45fabfed486",
-                          "SubnetA" : "	subnet-0318320d4777c2e43",
+                          "SubnetA" : "subnet-0318320d4777c2e43",
                           "SubnetB" : "subnet-00bc5937be0dfafee",
                           "SubnetC" : "subnet-0ad78bbb02c81485d",
                           "Environment" : "Prod"
