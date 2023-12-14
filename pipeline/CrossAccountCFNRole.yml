@@ -86,6 +86,7 @@ Resources:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutRetentionPolicy
+                  - logs:DeleteLogGroup
                 Resource: '*'
         - PolicyName: Artefact-KMS-Key-Access
           PolicyDocument:
