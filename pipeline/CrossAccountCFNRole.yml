@@ -100,3 +100,20 @@ Resources:
                 - kms:GenerateDataKey*
                 - kms:DescribeKey
               Resource: !Ref ArtefactKMSKeyArn
+        - PolicyName: Invoke-PipelineStepFunction
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: Allow
+                Action: 
+                  - states:Start*
+                  - states:Create*
+                  - states:Delete*
+                  - states:TagResource
+                  - states:UntagResource
+                  - states:DescribeStateMachine
+                Resource: !Sub 'arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:PipelineStepFunction*'
+              - Effect: Allow
+                Action: 
+                  - states:DescribeExecution
+                Resource: !Sub 'arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:execution:PipelineStepFunction*:*'

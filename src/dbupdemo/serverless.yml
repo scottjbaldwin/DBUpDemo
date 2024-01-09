@@ -129,7 +129,56 @@ Resources:
             - Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierBSubnet
             - !Ref AWS::NoValue
 
+  KickstartDBFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${KickstartDBFunction}"
+      RetentionInDays: 30
+  
+  KickstartDBFunction:
+    Type: AWS::Serverless::Function
+    DependsOn:
+      - VpcPolicy
+    Properties:
+      Handler: dbupdemo::dbupdemo.Functions::KickstartDB
+      Runtime: dotnet6
+      CodeUri: ""
+      MemorySize: 256
+      Timeout: 900
+      Role: !GetAtt KickstartFunctionRole.Arn
+      Environment:
+        Variables:
+            DBEndpoint: !Ref DBEndpoint
+            DBName: dbupdemo
+            DBSecret: !Ref DBSecretArn
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref DBSecurityGroup
+        SubnetIds:
+          - Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierASubnet
+          - Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierBSubnet
+          - !If 
+            - IncludeSubnetC
+            - Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierBSubnet
+            - !Ref AWS::NoValue
+
   DbUpFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: Allow
+            Action: 'sts:AssumeRole'
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy'
+
+  KickstartFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -159,6 +208,22 @@ Resources:
       Roles:
         - !Ref DbUpFunctionRole
 
+  KickstartFunctionCloudWatchLogsPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DbUpFunctionCloudWatchLogsPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          -
+            Effect: Allow
+            Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-KickstartDBFunction-*'
+      Roles:
+        - !Ref KickstartFunctionRole
+
   DbUpFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
@@ -182,6 +247,7 @@ Resources:
       Roles:
         - !Ref GetFunctionRole
         - !Ref DbUpFunctionRole
+        - !Ref KickstartFunctionRole
   
   VpcPolicy:
     Type: AWS::IAM::Policy
@@ -199,10 +265,74 @@ Resources:
       Roles:
         - !Ref GetFunctionRole
         - !Ref DbUpFunctionRole
+        - !Ref KickstartFunctionRole
 
+  PipelineStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: !Sub states.${AWS::Region}.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: StepFunctionLambdaInvoke
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - lambda:InvokeFunction
+            Resource:
+              - !GetAtt
+                - KickstartDBFunction
+                - Arn
+              - !GetAtt
+                - DbUpFunction
+                - Arn
+      Tags:
+        -
+          Key: "Env"
+          Value : !Ref Environment
+
+  PipelineStepFunction:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Definition:
+        StartAt: WarmUpDB
+        States:
+          WarmUpDB:
+            Type: Task
+            Resource: !GetAtt KickstartDBFunction.Arn
+            ResultPath: null
+            Next: UpgradeDatabase
+          UpgradeDatabase:
+            Type: Task
+            Resource: !GetAtt DbUpFunction.Arn
+            Retry:
+              - ErrorEquals:
+                  - States.TaskFailed
+                BackoffRate: 2
+                IntervalSeconds: 20
+                MaxAttempts: 2
+                Comment: Retry the DbUp scripts
+            ResultPath: null
+            Next: End
+          End:
+            Type: Succeed
+      Role: !GetAtt PipelineStateMachineRole.Arn
+      Tracing:
+        Enabled: true
+      Tags:
+          env: !Ref Environment
 Outputs:
   ApiURL:
     Description: API endpoint URL
     Value:
       Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/
+  PipelineStepFunctionArn:
+    Description: The arn of the pipeline step function
+    Value: !Ref PipelineStepFunction
 

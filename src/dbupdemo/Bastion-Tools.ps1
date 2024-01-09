@@ -64,9 +64,9 @@ function Deploy-BastionStack {
 #>
 function Open-SSMSession {
     param(
-        [Parameter()]
+        [Parameter(Mandatory=$True)]
         [string]
-        $Endpoint = "dbupdemo-devdb-stack-demodb-xn9nb9zgpv70.cluster-ccmji1fe3oc2.ap-southeast-2.rds.amazonaws.com",
+        $Endpoint,
 
         [Parameter()]
         [ValidateSet('develop', 'test', 'staging', 'prod')]

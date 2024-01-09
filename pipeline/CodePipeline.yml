@@ -398,6 +398,22 @@ Resources:
                   OutputArtifacts:
                     - Name: !Sub '${ProjectName}DevDeployment'
                   RunOrder: 2
+                - Name: DbUpDev
+                  Namespace: DbUpDev
+                  RoleArn: !Sub arn:${AWS::Partition}:iam::${DevAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                  ActionTypeId: 
+                    Category: Invoke
+                    Owner: AWS
+                    Provider: StepFunctions
+                    Version: '1'
+                  Configuration:
+                    StateMachineArn: "#{DevDeploy.PipelineStepFunctionArn}"
+                    Input: |
+                      {
+                        "InvocationSource": "Pipeline",
+                        "RetryTimeout": 120
+                      }
+                  RunOrder: 3
 
             - Name: DeployToProd
               Actions:
@@ -475,6 +491,23 @@ Resources:
                   OutputArtifacts:
                     - Name: !Sub '${ProjectName}ProdChangeSet'
                   RunOrder: 4
+
+                - Name: DbUpProd
+                  Namespace: DbUpProd
+                  RoleArn: !Sub arn:${AWS::Partition}:iam::${ProdAccountNo}:role/${ProjectName}-${AWS::Region}-DeploymentRole
+                  ActionTypeId: 
+                    Category: Invoke
+                    Owner: AWS
+                    Provider: StepFunctions
+                    Version: '1'
+                  Configuration:
+                    StateMachineArn: "#{ProdDeploy.PipelineStepFunctionArn}"
+                    Input: |
+                      {
+                        "InvocationSource": "Pipeline",
+                        "RetryTimeout": 120
+                      }
+                  RunOrder: 5
 
   PipelineSNSTopic:
     Type: AWS::SNS::Topic

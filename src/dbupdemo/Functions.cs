@@ -5,6 +5,8 @@ using DbUp;
 using MySql.Data.MySqlClient;
 using System.Reflection;
 using Dapper;
+using System.Diagnostics;
+using System.Runtime.Serialization;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -38,6 +40,50 @@ public class Functions
         };
 
         return response;
+    }
+
+    public async Task<KickstartDBOutput> KickstartDB(KickstartDBEvent evt, ILambdaContext context)
+    {
+        context.Logger.LogLine($"Kickstarting RoppDB for context {evt.InvocationSource}");
+
+        MySqlConnectionStringBuilder builder = new MySqlConnectionStringBuilder();
+        var connectionString = await builder.BuildFromEnvironmentVariables(context.Logger, false);
+
+        var sw = new Stopwatch();
+        sw.Start();
+
+        var success = false;
+        try
+        {
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                await connection.OpenAsync();
+                await connection.CloseAsync();
+                context.Logger.LogLine("Successfully connected to Aurora database");
+                success = true;
+            }
+        }
+        catch (MySqlException ex)
+        {
+            context.Logger.LogLine($"Attempt to connect to Aurora failed with error {ex.Message}");
+        }
+
+        sw.Stop();
+
+        if (success)
+        {
+            context.Logger.LogLine($"Kickstarted RoppDB - startup time was {sw.ElapsedMilliseconds} milliseconds");
+        }
+        else
+        {
+            context.Logger.LogLine($"Failed to kickstart Aurora in {evt.RetryTimeout} seconds.");
+            throw new KickstartDBFailedException(evt.RetryTimeout);
+        }
+
+        return new KickstartDBOutput
+        {
+            MillisecondsToConnect = sw.ElapsedMilliseconds
+        };
     }
 
     public async Task SchemaUpgrade(SchemaUpgradeEvent evt, ILambdaContext context)
@@ -93,4 +139,31 @@ public class Functions
         }
     }
 
+}
+
+[Serializable]
+internal class KickstartDBFailedException : Exception
+{
+    private int retryTimeout;
+
+    public KickstartDBFailedException()
+    {
+    }
+
+    public KickstartDBFailedException(int retryTimeout)
+    {
+        this.retryTimeout = retryTimeout;
+    }
+
+    public KickstartDBFailedException(string? message) : base(message)
+    {
+    }
+
+    public KickstartDBFailedException(string? message, Exception? innerException) : base(message, innerException)
+    {
+    }
+
+    protected KickstartDBFailedException(SerializationInfo info, StreamingContext context) : base(info, context)
+    {
+    }
 }

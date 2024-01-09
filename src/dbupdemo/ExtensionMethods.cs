@@ -49,4 +49,5 @@ public static class ExtensionMethods
 
         return builder.ConnectionString;
     }
+
 }
