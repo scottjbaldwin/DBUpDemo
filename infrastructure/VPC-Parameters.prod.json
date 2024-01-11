@@ -30,5 +30,9 @@
   {
     "ParameterKey": "Environment",
     "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "ReducedCost",
+    "ParameterValue": "true"
   }
 ]

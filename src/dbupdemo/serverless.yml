@@ -11,15 +11,19 @@ Parameters:
   DBSecurityGroup:
     Type: String
     Description: The Security Group for the DB
-  SubnetA:
+  ReducedCost:
     Type: String
-    Description: Subnet Id for Availability zone A
-  SubnetB:
+    Description: If Reduced Cost is et to true, this template will create only 2 of the 3 subnets
+    Default: "false"
+  Environment:
     Type: String
-    Description: Subnet Id for Availability zone B
-  SubnetC:
-    Type: String
-    Description: Subnet Id for Availability zone C
+    Description: The name of the environment being deployed to
+
+Conditions:
+  IncludeSubnetC: !Equals
+    - !Ref ReducedCost
+    - "false"
+
 Resources:
   GetFunction:
     Type: AWS::Serverless::Function
@@ -53,9 +57,12 @@ Resources:
         SecurityGroupIds:
           - !Ref DBSecurityGroup
         SubnetIds:
-          - !Ref SubnetA
-          - !Ref SubnetB
-          - !Ref SubnetC
+          - Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierASubnet
+          - Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierBSubnet
+          - !If 
+            - IncludeSubnetC
+            - Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierBSubnet
+            - !Ref AWS::NoValue
 
   GetFunctionRole:
     Type: AWS::IAM::Role
@@ -115,9 +122,12 @@ Resources:
         SecurityGroupIds:
           - !Ref DBSecurityGroup
         SubnetIds:
-          - !Ref SubnetA
-          - !Ref SubnetB
-          - !Ref SubnetC
+          - Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierASubnet
+          - Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierBSubnet
+          - !If 
+            - IncludeSubnetC
+            - Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierBSubnet
+            - !Ref AWS::NoValue
 
   DbUpFunctionRole:
     Type: AWS::IAM::Role

@@ -34,6 +34,15 @@ Parameters:
     Type: Number
     Description: The number of days to retain VPC Flow logs
     Default: 30
+  ReducedCost:
+    Type: String
+    Description: If Reduced Cost is set to true, this template will create only 2 of the 3 subnets
+    Default: "false"
+
+Conditions:
+  IncludeSubnetC: !Equals
+    - !Ref ReducedCost
+    - "false"
 
 Resources:
   VPCFlowLogRole:
@@ -128,6 +137,7 @@ Resources:
           Value: !Ref 'AWS::StackId'
   PublicTierCSubnet:
     Type: 'AWS::EC2::Subnet'
+    Condition: IncludeSubnetC
     Properties:
       VpcId: !Ref VPC
       AvailabilityZone:
@@ -170,6 +180,7 @@ Resources:
           Value: !Ref 'AWS::StackId'
   AppTierCSubnet:
     Type: 'AWS::EC2::Subnet'
+    Condition: IncludeSubnetC
     Properties:
       VpcId: !Ref VPC
       AvailabilityZone:
@@ -218,6 +229,7 @@ Resources:
           Value: !Sub ${AWS::StackName}-${Environment}-RouteB
   RouteTableAPPC:
     Type: 'AWS::EC2::RouteTable'
+    Condition: IncludeSubnetC
     Properties:
       VpcId: !Ref VPC
       Tags:
@@ -242,6 +254,7 @@ Resources:
       RouteTableId: !Ref RouteTableIGW
   PublicTierCRouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Condition: IncludeSubnetC
     Properties:
       SubnetId: !Ref PublicTierCSubnet
       RouteTableId: !Ref RouteTableIGW
@@ -257,6 +270,7 @@ Resources:
       RouteTableId: !Ref RouteTableAPPB
   AppTierCRouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Condition: IncludeSubnetC
     Properties:
       SubnetId: !Ref AppTierCSubnet
       RouteTableId: !Ref RouteTableAPPC
@@ -312,6 +326,7 @@ Resources:
       NetworkAclId: !Ref NetworkAcl
   PublicTierCNetworkAclAssociation:
     Type: 'AWS::EC2::SubnetNetworkAclAssociation'
+    Condition: IncludeSubnetC
     Properties:
       SubnetId: !Ref PublicTierCSubnet
       NetworkAclId: !Ref NetworkAcl
@@ -327,6 +342,7 @@ Resources:
       NetworkAclId: !Ref NetworkAcl
   AppTierCNetworkAclAssociation:
     Type: 'AWS::EC2::SubnetNetworkAclAssociation'
+    Condition: IncludeSubnetC
     Properties:
       SubnetId: !Ref AppTierCSubnet
       NetworkAclId: !Ref NetworkAcl
@@ -351,7 +367,10 @@ Resources:
       RouteTableIds:
         - !Ref RouteTableAPPA
         - !Ref RouteTableAPPB
-        - !Ref RouteTableAPPC
+        - !If 
+          - IncludeSubnetC
+          - !Ref RouteTableAPPC
+          - !Ref AWS::NoValue
       ServiceName: !Sub  'com.amazonaws.${AWS::Region}.s3'
       VpcId: !Ref VPC
   DynamoEndpoint:
@@ -368,7 +387,10 @@ Resources:
       RouteTableIds:
         - !Ref RouteTableAPPA
         - !Ref RouteTableAPPB
-        - !Ref RouteTableAPPC
+        - !If 
+          - IncludeSubnetC
+          - !Ref RouteTableAPPC
+          - !Ref AWS::NoValue
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.dynamodb'
       VpcId: !Ref VPC
   SecManEndpoint:
@@ -388,7 +410,10 @@ Resources:
       SubnetIds:
         - !Ref AppTierASubnet
         - !Ref AppTierBSubnet
-        - !Ref AppTierCSubnet
+        - !If
+          - IncludeSubnetC
+          - !Ref AppTierCSubnet
+          - !Ref AWS::NoValue
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.secretsmanager'
       VpcId: !Ref VPC
       VpcEndpointType: Interface
@@ -409,7 +434,10 @@ Resources:
       SubnetIds:
         - !Ref AppTierASubnet
         - !Ref AppTierBSubnet
-        - !Ref AppTierCSubnet
+        - !If
+          - IncludeSubnetC
+          - !Ref AppTierCSubnet
+          - !Ref AWS::NoValue
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
       VpcId: !Ref VPC
       VpcEndpointType: Interface
@@ -421,7 +449,10 @@ Resources:
       SubnetIds:
         - !Ref AppTierASubnet
         - !Ref AppTierBSubnet
-        - !Ref AppTierCSubnet
+        - !If
+          - IncludeSubnetC
+          - !Ref AppTierCSubnet
+          - !Ref AWS::NoValue
       SecurityGroupIds:
         - !Ref AppSecurityGroup
       VpcEndpointType: Interface
@@ -462,6 +493,7 @@ Outputs:
       Name: !Sub '${Environment}-VPCStack-PublicTierBSubnet'
   PublicTierCSubnet:
     Description: PublicTierCSubnet
+    Condition: IncludeSubnetC
     Value: !Ref PublicTierCSubnet
     Export:
       Name: !Sub '${Environment}-VPCStack-PublicTierCSubnet'
@@ -477,6 +509,7 @@ Outputs:
       Name: !Sub '${Environment}-VPCStack-AppTierBSubnet'
   AppTierCSubnet:
     Description: AppTierCSubnet
+    Condition: IncludeSubnetC
     Value: !Ref AppTierCSubnet
     Export:
       Name: !Sub '${Environment}-VPCStack-AppTierCSubnet'
@@ -503,6 +536,7 @@ Outputs:
       Name: !Sub '${Environment}-AppTierB-AZ'
   AppTierCAZ:
     Description: The Availability Zone that AppTier C resides in
+    Condition: IncludeSubnetC
     Value:
         !Select
           - 2

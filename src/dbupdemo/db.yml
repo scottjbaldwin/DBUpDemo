@@ -1,21 +1,18 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: dbup demo application database
 Parameters:
-  VPCId:
-    Type: String
-    Description: The VPC the databaseis to reside in
-  SubnetA:
-    Type: String
-    Description: Subnet Id for Availability zone A
-  SubnetB:
-    Type: String
-    Description: Subnet Id for Availability zone B
-  SubnetC:
-    Type: String
-    Description: Subnet Id for Availability zone C
   Environment:
     Type: String
     Description: The name of the environment being deployed to
+  ReducedCost:
+    Type: String
+    Description: If Reduced Cost is et to true, this template will create only 2 of the 3 subnets
+    Default: "false"
+
+Conditions:
+  IncludeSubnetC: !Equals
+    - !Ref ReducedCost
+    - "false"
 
 Resources:
   DBSubnetGroup:
@@ -23,15 +20,19 @@ Resources:
     Properties:
       DBSubnetGroupDescription: RoppDB Subnet Group
       SubnetIds:
-          - !Ref SubnetA
-          - !Ref SubnetB
-          - !Ref SubnetC
+          - Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierASubnet
+          - Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierBSubnet
+          - !If 
+            - IncludeSubnetC
+            - Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierBSubnet
+            - !Ref AWS::NoValue
 
   DBSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: DB Allowed Ports
-      VpcId: !Ref VPCId
+      VpcId: 
+        Fn::ImportValue: !Sub ${Environment}-VPCStack-VPCID
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 3306
