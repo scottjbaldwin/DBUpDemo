@@ -39,8 +39,6 @@ public static class ExtensionMethods
             SecretId =  secretId
         });
 
-        logger.LogInformation($"Retrieved secret string: {secret.SecretString}");
-
         var credentials = JsonSerializer.Deserialize<DatabaseCredentials>(secret.SecretString);
 
         builder.UserID = credentials.Username;
