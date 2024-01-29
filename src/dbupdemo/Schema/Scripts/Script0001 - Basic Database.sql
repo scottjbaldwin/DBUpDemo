@@ -1,7 +1,7 @@
 USE `dbupdemo`;
 
-CREATE TABLE IF NOT EXISTS `Contacts` (
-    `ContactId` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS `Contact` (
+    `Id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `GivenName` VARCHAR(100),
     `Surname` VARCHAR(100),
     `ContactType` varchar(20),
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `Contacts` (
 ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS `Address` (
-	`AddressId` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+	`Id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
 	`Street` nvarchar(100),
 	`City` nvarchar(50),
 	`State` nvarchar(50),
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `Address` (
 ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS `ContactAddress` (
-	`ContactAddressId` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+	`Id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
 	`ContactId` INT UNSIGNED NOT NULL,
 	`AddressId` INT UNSIGNED NOT NULL,
 	`AddressType` int, -- 1 = postal, 2 = billing

@@ -15,18 +15,6 @@ Parameters:
     Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
     Default: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
 
-  VpcId:
-    Type: String
-    Description: The id of the VPC to provision this instance in
-
-  SubnetId:
-    Type: String
-    Description: The subnet to launch the instance in
-
-  VpcCidrRange:
-    Type: String
-    Description: The VPC cidr range
-  
   InstanceType:
     Type: String
     Default: "t4g.nano"
@@ -46,7 +34,8 @@ Resources:
       IamInstanceProfile: !Ref SessionManagerInstanceProfile
       SecurityGroupIds:
         - !GetAtt Ec2InstanceSecurityGroup.GroupId
-      SubnetId: !Ref SubnetId
+      SubnetId: 
+        Fn::ImportValue: !Sub ${Environment}-VPCStack-AppTierASubnet
       UserData:
         Fn::Base64: |
           #!/bin/bash -xe
@@ -59,21 +48,25 @@ Resources:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: Bastion Host Security Group
-      VpcId: !Ref VpcId
+      VpcId:
+        Fn::ImportValue: !Sub ${Environment}-VPCStack-VPCID
       SecurityGroupEgress:
       # The SSM Agent connects to Session Manager over TCP 443
       - Description: allow outbound HTTPS to the VPC
-        CidrIp: !Ref VpcCidrRange
+        CidrIp:
+          Fn::ImportValue: !Sub ${Environment}-VPCStack-CidrBlock
         FromPort: 443
         ToPort: 443
         IpProtocol: tcp
       - Description: allow outbound to HTTPS to S3 for yum
-        CidrIp: 52.95.128.0/21
+        CidrIp: 
+          Fn::ImportValue: !Sub ${Environment}-VPCStack-CidrBlock
         FromPort: 443
         ToPort: 443
         IpProtocol: tcp
       - Description: allow outbound MySql to RDS
-        CidrIp: !Ref VpcCidrRange
+        CidrIp:
+          Fn::ImportValue: !Sub ${Environment}-VPCStack-CidrBlock
         FromPort: 3306
         ToPort: 3306
         IpProtocol: tcp

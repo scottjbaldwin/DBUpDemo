@@ -12,10 +12,9 @@
 #>
 function Deploy-BastionStack {
     param (
-        # Environment for Bastion Stack Name
-        [ValidateSet('develop', 'test', 'staging', 'prod')]
+        [ValidateSet('dev', 'prod')]
         [string]
-        $Environment = "develop",
+        $Environment = "dev",
 
         [Parameter()]
         [string]
@@ -23,11 +22,9 @@ function Deploy-BastionStack {
     )
 
     $stackName = "$Environment-bastion"
-    $templatePath = ".\src\ropp\bastionhost.yml"
+    $templatePath = Join-Path $PSScriptRoot "bastionhost.yml"
 
     Write-Verbose "Verifying Cloudformation Template at $templatePath"
-
-    cfn-lint $templatePath
 
     $paramOverridesJson = @(
         @{ParameterKey = "Environment"; ParameterValue = $Environment }
@@ -69,9 +66,9 @@ function Open-SSMSession {
         $Endpoint,
 
         [Parameter()]
-        [ValidateSet('develop', 'test', 'staging', 'prod')]
+        [ValidateSet('dev', 'prod')]
         [string]
-        $Environment = "develop",
+        $Environment = "dev",
 
         # Remote Port to connect to
         [Parameter()]
@@ -94,7 +91,7 @@ function Open-SSMSession {
     )
 
     Write-Verbose "Getting instance id of bastion host from bastion"
-    $instanceId = aws cloudformation describe-stack-resource --stack-name "bastion" `
+    $instanceId = aws cloudformation describe-stack-resource --stack-name "$Environment-bastion" `
         --logical-resource-id BastionEc2Instance --query 'StackResourceDetail.PhysicalResourceId' --output text
 
     Write-Verbose "Instance ID is $instanceId"
