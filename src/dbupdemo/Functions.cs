@@ -7,6 +7,7 @@ using System.Reflection;
 using Dapper;
 using System.Diagnostics;
 using System.Runtime.Serialization;
+using ropp.Pipeline.Schema;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -96,9 +97,11 @@ public class Functions
 
         connectionString = await builder.BuildFromEnvironmentVariables(context.Logger, true);
         context.Logger.LogInformation($"Schema Upgrade for build {evt.BuildIdentifier} initiated.");
+        var dbUpLogger = new UpgradeLoggerWrapper<Functions>(context.Logger);
         var upgrader = DeployChanges.To
                 .MySqlDatabase(connectionString)
-                .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly())
+                .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly(), s => IsType(s, "Scripts"))
+                .LogTo(dbUpLogger)
                 .WithExecutionTimeout(TimeSpan.FromSeconds(300))
                 .Build();
 
@@ -115,6 +118,11 @@ public class Functions
         {
             context.Logger.LogInformation("Schema Upgrade successful.");
         }
+    }
+
+    private bool IsType(string scriptName, string scriptType)
+    {
+        return scriptName.StartsWith($"dbupdemo.Schema.{scriptType}");
     }
 
     public async Task CreateDBIfNotExists(string connectionString, ILambdaLogger logger)
